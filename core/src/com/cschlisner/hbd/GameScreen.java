@@ -5,6 +5,7 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -14,9 +15,11 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Event;
 import com.badlogic.gdx.scenes.scene2d.EventListener;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
@@ -26,6 +29,9 @@ import java.util.logging.Logger;
 
 public class GameScreen implements Screen {
 	final HyperBrickGame game;
+	AssetManager assManager;
+	PauseMenu menuOverlay;
+
 	private Stage stage;
 	OrthographicCamera camera;
 	PlayerPaddle paddle;
@@ -33,26 +39,32 @@ public class GameScreen implements Screen {
 	LevelManager levelManager;
 	InfoBar infoBar;
 	private boolean waitingOnKickOff = true;
+	private boolean paused = false;
 
 	public GameScreen(final HyperBrickGame game){
 		this.game = game;
+		this.assManager = game.assetManager;
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false);
 		Viewport stretchViewport = new StretchViewport(1300,2533,camera);
 		stretchViewport.apply();
 		stage = new Stage(stretchViewport);
 		stage.getBatch().setProjectionMatrix(camera.combined);
-
-
-
 	}
 
 	public void advanceLevel(){
 		++infoBar.level;
+		if (game.getMode()== HyperBrickGame.GameMode.CHALLENGE && infoBar.level == LevelManager.testLevels.length){
+			dispose();
+			game.setScreen(new TitleScreen(game));
+			return;
+		}
+
+
 		// remove any leftover balls that spawned
 		levelManager.spawnedBalls.clearChildren();
+		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
 		ball.handleDeath();
-		ball.speed *= 1+((float)infoBar.level/10.0f);
 		waitingOnKickOff = true;
 		infoBar.lives = 3;
 		levelManager.createBricks(infoBar.level);
@@ -72,7 +84,6 @@ public class GameScreen implements Screen {
 				ball.isDead=false;
 				waitingOnKickOff = false;
 				paddle.removeListener(this);
-
 				return true;
 			}
 		});
@@ -84,33 +95,37 @@ public class GameScreen implements Screen {
 		stage.getRoot().getColor().a = 0;
 		stage.getRoot().addAction(fadeIn(2.0f));
 
-		stage.addListener(new EventListener() {
-			@Override
-			public boolean handle(Event event) {
-				if (((InputEvent) event).getType() != InputEvent.Type.exit)
-					return true;
-				if (event.getTarget() == infoBar.pauseBtn) {
-					pause();
-				}
-				return true;
-			}
-		});
-
 		Gdx.input.setInputProcessor(stage);
 
 
-		infoBar = new InfoBar(camera);
-		paddle = new PlayerPaddle(camera);
-		levelManager = new LevelManager(camera);
-		ball = new Ball(camera, levelManager);
+		infoBar = new InfoBar(this);
+		paddle = new PlayerPaddle(this);
+		levelManager = new LevelManager(this);
+		ball = new Ball(this, levelManager);
 
 		stage.addActor(infoBar);
 		stage.addActor(infoBar.pauseBtn);
 		stage.addActor(paddle);
 		stage.addActor(ball);
 		stage.addActor(levelManager.brickGroup);
+		menuOverlay = new PauseMenu(this);
 
-        advanceLevel();
+		infoBar.pauseBtn.setOnClick(new Runnable() {
+			@Override
+			public void run() {
+				if (!paused)
+					pause();
+				else unpause();
+			}
+		});
+		menuOverlay.quitBtn.setOnClick(new Runnable() {
+			@Override
+			public void run() {
+				dispose();
+				game.setScreen(new TitleScreen(game));
+			}
+		});
+		advanceLevel();
     }
 
 	@Override
@@ -118,7 +133,11 @@ public class GameScreen implements Screen {
 //		ScreenUtils.clear(0.52f, 0.73f, 0.94f, 0.6f);
 		ScreenUtils.clear(Color.BLACK);
 
-		stage.act(delta);
+		if (!this.paused) {
+			stage.act(delta);
+		}
+		else infoBar.pauseBtn.act(delta);
+
 		// ball will collide with screen on its own
 		if (ball.isDead){
 			if (!waitingOnKickOff) {
@@ -155,12 +174,24 @@ public class GameScreen implements Screen {
 
 	@Override
 	public void pause() {
+		paused = true;
+		infoBar.pauseBtn.setText(Const.TEXT[7]);
+		stage.addActor(menuOverlay.menuGroup);
+		paddle.removeListener(paddle.paddleInputListener);
+	}
 
+	public void unpause(){
+		infoBar.pauseBtn.setText(Const.TEXT[6]);
+		menuOverlay.menuGroup.remove();
+		this.paused = false;
+		paddle.addListener(paddle.paddleInputListener);
 	}
 
 	@Override
 	public void resume() {
-
+		// sounds sometimes get unloaded if application gets paused????
+		for (Actor b : levelManager.brickGroup.getChildren())
+			((Brick)b).reloadSounds();
 	}
 
 	@Override
@@ -170,5 +201,11 @@ public class GameScreen implements Screen {
 	
 	@Override
 	public void dispose () {
+		ball.dispose();
+		paddle.dispose();
+		infoBar.dispose();
+		stage.dispose();
+		for (Actor b : levelManager.brickGroup.getChildren())
+			((Brick)b).disposeAssests();
 	}
 }

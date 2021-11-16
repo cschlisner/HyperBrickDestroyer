@@ -1,6 +1,9 @@
 package com.cschlisner.hbd;
 
+import static com.brashmonkey.spriter.Spriter.dispose;
+
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
@@ -16,6 +19,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.brashmonkey.spriter.Spriter;
 
 import org.w3c.dom.css.Rect;
 
@@ -28,8 +32,8 @@ import javax.swing.CellEditor;
 import jdk.tools.jlink.internal.plugins.VendorBugURLPlugin;
 
 public class Ball extends Actor {
-
-    public boolean isPrimary = false;
+    Screen screen;
+    public boolean isPrimary;
 
     public boolean isDead = true;
 
@@ -53,21 +57,22 @@ public class Ball extends Actor {
 
     LevelManager levelManager;
 
-    public Ball(Camera cam, LevelManager manager){
-        this(cam, manager, true);
+    public Ball(GameScreen screen, LevelManager manager){
+        this(screen, manager, true);
     }
 
-    public Ball(Camera camera, LevelManager manager, boolean isPrimary){
+    public Ball(GameScreen screen, LevelManager manager, boolean isPrimary){
+        this.screen = screen;
         this.levelManager = manager;
         this.isPrimary = isPrimary;
         setName("Ball");
-        Texture texture = new Texture("texture/Ball2.png");
+        Texture texture = screen.assManager.get(Const.TEXTURES[1], Texture.class);
         tex = new TextureRegion(texture);
         tw = texture.getWidth();
         th = texture.getHeight();
 
-        SCRH = camera.viewportHeight;
-        SCRW = camera.viewportWidth;
+        SCRH = screen.camera.viewportHeight;
+        SCRW = screen.camera.viewportWidth;
 
         float x = SCRW / 2.0f - (tw/2.0f);
         float y = SCRH / 4.0f;
@@ -86,24 +91,23 @@ public class Ball extends Actor {
             bounceEffect = new ParticleEffect();
             bounceEffect.load(Gdx.files.internal("particle/bounce.p"), Gdx.files.internal("particle"));
         }
-        bounceSound = Gdx.audio.newSound(Gdx.files.internal("sound/click.wav"));
+        bounceSound = screen.assManager.get(Const.SOUNDS[2], Sound.class);
 
         updateCollisionPoints();
     }
 
-    ArrayList<Vector2> ballCollisionPoints;
+    ArrayList<Vector2> ballCollisionPoints = new ArrayList<>();
     Circle collisionCircle;
     Rectangle collisionRect;
     // just use 8 collision points instead of doing pixel perfect
     private void updateCollisionPoints(){
         int samplerate = 1; // 1-360 sample rate for points
-        ArrayList<Vector2> points = new ArrayList<>();
         r = getWidth()/2;
         cx = getX()+getWidth()/2;
         cy = getY()+getHeight()/2;
+        ballCollisionPoints.clear();
         for (double i = 0; i < 360; i += samplerate)
-            points.add(new Vector2((int)(cx+(float)Math.cos(i)*r), (int)(cy+(float)Math.sin(i)*r)));
-        ballCollisionPoints = points;
+            ballCollisionPoints.add(new Vector2((int)(cx+(float)Math.cos(i)*r), (int)(cy+(float)Math.sin(i)*r)));
 //        collisionCircle = new Circle(cx,cy,r);
         collisionRect = new Rectangle(getX(),getY(),getWidth(),getHeight());
     }
@@ -122,7 +126,7 @@ public class Ball extends Actor {
         spin = - (velocity.crs(collTraj)*18 % 360);
         if (isPrimary) {
             bounceEffect.getEmitters().first().setPosition(collisionPoint.x,collisionPoint.y);
-            bounceEffect.start();
+            //bounceEffect.start();
         }
     }
 
@@ -206,6 +210,11 @@ public class Ball extends Actor {
             handleDeath();
     }
 
+    public void dispose(){
+        bounceEffect.dispose();
+        traceEffect.dispose();
+    }
+
     public void handleDeath(){
         if (!isPrimary) {
             remove();
@@ -254,7 +263,7 @@ public class Ball extends Actor {
             collidesWithWalls();
             collidesWith(getInfobar());
             if (collidesWith(getPaddle()))
-                getPaddle().handleBallCollision();
+                getPaddle().handleCollision();
             for (Actor b : levelManager.brickGroup.getChildren()) {
                 if (collidesWith((Collision) b)) {
                     ((Brick) b).takeDamage();
@@ -283,9 +292,9 @@ public class Ball extends Actor {
     public void draw(Batch batch, float parentAlpha) {
         if (!isDead && isPrimary) {
             traceEffect.update(Gdx.graphics.getDeltaTime());
-            bounceEffect.update(Gdx.graphics.getDeltaTime());
+            //bounceEffect.update(Gdx.graphics.getDeltaTime());
             traceEffect.draw(batch);
-            bounceEffect.draw(batch);
+            //bounceEffect.draw(batch);
         }
         Color color = getColor();
         batch.setColor(color.r, color.g, color.b, color.a * parentAlpha);

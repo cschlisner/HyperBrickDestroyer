@@ -18,7 +18,7 @@ public class Brick extends Actor implements Collision {
 
     public static Hashtable<BrickType,Color> brickColors = new Hashtable<>();
 
-    public static enum BrickType {
+    public enum BrickType {
         Normal,
         Weak,
         Tough,
@@ -49,6 +49,10 @@ public class Brick extends Actor implements Collision {
         return boundingBox;
     }
 
+    @Override
+    public void handleCollision() {
+        takeDamage();
+    }
 
 
     LevelManager manager;
@@ -76,10 +80,11 @@ public class Brick extends Actor implements Collision {
         setColor(brickColors.get(type));
 
         // textures: brick type texture and damage textures
-        Texture dmgTexture = new Texture("texture/brick/BrickDamage2.png");
+        Texture dmgTexture = manager.screen.assManager.get(Const.TEXTURES[2], Texture.class);
         dmgTextures = TextureRegion.split(dmgTexture, dmgTexture.getWidth() / 6, dmgTexture.getHeight());
-        Texture brickTex = new Texture(String.format("texture/brick/%s.png", type));
+        Texture brickTex = manager.screen.assManager.get(Const.TEXTURES[2+typeInd], Texture.class);
         brickTexture = new TextureRegion(brickTex);
+
 
         // spacial vars
         mapx = x;
@@ -108,16 +113,20 @@ public class Brick extends Actor implements Collision {
             temp[2] = col.b;
         }
 
-        // sounds
-        breakSound = Gdx.audio.newSound(Gdx.files.internal("sound/explosion.wav"));
-        hitSound = Gdx.audio.newSound(Gdx.files.internal("sound/hitHurt.wav"));
-        hitImmune = Gdx.audio.newSound(Gdx.files.internal("sound/hitMetal.wav"));
-        explodeSound = Gdx.audio.newSound(Gdx.files.internal("sound/tnt.wav"));
+        // sounds sometimes get unloaded if application gets paused?
+        reloadSounds();
 
         // handle brick type specific attributes
         maxHealth = type==BrickType.Weak?1:type==BrickType.Tough?4:2;
         health= maxHealth;
 
+    }
+
+    public void reloadSounds(){
+        breakSound = manager.screen.assManager.get(Const.SOUNDS[3], Sound.class);
+        hitSound = manager.screen.assManager.get(Const.SOUNDS[6], Sound.class);
+        hitImmune = manager.screen.assManager.get(Const.SOUNDS[4], Sound.class);
+        explodeSound = manager.screen.assManager.get(Const.SOUNDS[5], Sound.class);
     }
 
     // return a Texture based on how damaged the brick is
@@ -187,7 +196,7 @@ public class Brick extends Actor implements Collision {
             case BallSpawn:
                 Ball[] balls = new Ball[2];
                 for (Ball b : balls) {
-                    b = new Ball(manager.camera, manager, false);
+                    b = new Ball(manager.screen, manager, false);
                     b.setPosition(cx+rng.nextFloat()*40-20,cy);
                     b.velocity = new Vector2(rng.nextFloat()*2-1, 1.0f);
                     b.isDead=false;
@@ -237,5 +246,14 @@ public class Brick extends Actor implements Collision {
                         gameBall = (Ball) a;
         }
         return gameBall;
+    }
+
+    public void disposeAssests(){
+        if (breakEffect!=null) breakEffect.dispose();
+        breakSound.dispose();
+        explodeSound.dispose();
+        hitSound.dispose();
+        if (explodeEffect!=null) explodeEffect.dispose();
+        hitImmune.dispose();
     }
 }

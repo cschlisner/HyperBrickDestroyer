@@ -17,11 +17,36 @@ import java.util.Vector;
 public class LevelManager {
     static int[][][] testLevels = {
             {
-                    {9,4,4,9,9,9,9,4},
-                    {9,4,4,9,4,4,4,4},
-                    {9,9,9,9,9,9,9,4},
-                    {4,4,4,9,4,4,9,4},
-                    {9,9,9,9,4,4,9,4},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {8,8,8,8,8,8,8,8},
+            },
+            {
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
+            },
+            {
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
+            },
+            {
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
+                    {8,8,8,8,8,8,8,8},
             },
             {
                 {0,0,0,0,0,0,0,0},
@@ -50,10 +75,10 @@ public class LevelManager {
                 {0,0,0,0,0,0,0,0},
                 {1,8,1,1,8,1,1,8},
                 {1,1,1,1,1,1,1,1},
-                {1,8,1,1,1,1,8,1},
+                {8,8,8,8,8,8,8,8},
             },
     };
-
+    public GameScreen screen;
 
 
     Random rng = new Random();
@@ -75,8 +100,9 @@ public class LevelManager {
     public float DRAW_X, DRAW_Y;
 
 
-    public LevelManager(Camera camera){
-        this.camera = camera;
+    public LevelManager(GameScreen screen){
+        this.screen = screen;
+        this.camera = screen.camera;
         brickGroup = new Group();
         spawnedBalls = new Group();
         SCRH = camera.viewportHeight;
@@ -123,8 +149,14 @@ public class LevelManager {
         for (float[] prob : brickTypeDistribution)
             prob[1]/=psum;
 
-        this.curLevelMap = makeLevel(level, true);
-//        this.curLevelMap = testLevels[level-1];
+        switch (screen.game.getMode()){
+            case ZEN:
+                this.curLevelMap = makeLevel(level, true);
+                break;
+            case CHALLENGE:
+                this.curLevelMap = testLevels[level-1];
+                break;
+        }
 
         for (Actor b : brickGroup.getChildren())
             b.remove();
@@ -153,7 +185,7 @@ public class LevelManager {
             {1,0.4f},
             {2,0.3f},
             {3,0.3f},
-            {4,0.15f},
+            {4,0.06f},
             {5,0.03f},
             {6,0.05f},
             {7,0.03f},

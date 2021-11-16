@@ -1,6 +1,7 @@
 package com.cschlisner.hbd;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -11,7 +12,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 
 public class InfoBar extends Actor implements Collision {
-
+    Screen screen;
     int lives;
     int score;
     int level;
@@ -22,10 +23,11 @@ public class InfoBar extends Actor implements Collision {
 
     TextButton pauseBtn;
 
-    public InfoBar(Camera camera){
+    public InfoBar(GameScreen screen){
+        this.screen = screen;
         setName("Info");
-        scrw = camera.viewportWidth;
-        scrh = camera.viewportHeight;
+        scrw = screen.camera.viewportWidth;
+        scrh = screen.camera.viewportHeight;
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/alagard.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
@@ -39,7 +41,7 @@ public class InfoBar extends Actor implements Collision {
         setBounds(0,scrh-height,scrw,height);
         boundingBox = new Rectangle(0,scrh-height,scrw,height);
 
-        pauseBtn = new TextButton("PAUSE", "alagard.ttf", 60, getX()+10, getY()+font.getLineHeight());
+        pauseBtn = new TextButton(screen.assManager, Const.TEXT[6], "VerminVibes1989.ttf", 60, getX()+10, getY()+font.getLineHeight());
     }
 
     @Override
@@ -64,5 +66,15 @@ public class InfoBar extends Actor implements Collision {
     @Override
     public Rectangle getBoundingBox() {
         return boundingBox;
+    }
+
+    @Override
+    public void handleCollision() {
+        //ignore
+    }
+
+    public void dispose(){
+        shapeRend.dispose();
+        font.dispose();
     }
 }
