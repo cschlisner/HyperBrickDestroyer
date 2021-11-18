@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
@@ -16,7 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class PauseMenu extends Actor {
-    private final float SCRH, SCRW;
+    private final float SCRH, SCRW, ptextW, ptextH;
     private GameScreen screen;
     public TextButton quitBtn, settingsBtn;
     public Group menuGroup = new Group();
@@ -29,22 +30,20 @@ public class PauseMenu extends Actor {
     public PauseMenu(GameScreen screen){
         this.screen = screen;
 
-        fontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("font/VerminVibes1989.ttf"));
+        fontGenerator = new FreeTypeFontGenerator(Gdx.files.internal(Const._FONT_BIG));
         fontParameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         fontParameter.size=230;
         titlefont = fontGenerator.generateFont(fontParameter);
 
-        SCRH = screen.camera.viewportHeight;
-        SCRW = screen.camera.viewportWidth;
+        SCRH = screen.UIcamera.viewportHeight;
+        SCRW = screen.UIcamera.viewportWidth;
 
         float w = SCRW*0.9f;
         float h = w*0.5f;
         setBounds((SCRW-w)/2, SCRH/2.0f-(h/2.0f), w, h);
 
-        quitBtn = new TextButton(screen.assManager, Const.TEXT[8],"VerminVibes1989.ttf",
-                70, getX()+(getWidth())/4.0f, getY()+(h/2.0f));
-        settingsBtn = new TextButton(screen.assManager, Const.TEXT[5],"VerminVibes1989.ttf",
-                70, getX()+(getWidth()*0.5f), getY()+(h/2.0f));
+        quitBtn = new TextButton(screen.assManager, Const.TEXT[8],Const.fontr(2, 1),getX()+(getWidth())/4.0f, getY()+(h/3.0f));
+        settingsBtn = new TextButton(screen.assManager, Const.TEXT[5],Const.fontr(2, 0), getX()+(getWidth()*0.5f), getY()+(h/3.0f));
 
         menuGroup.addActor(this);
         menuGroup.addActor(quitBtn);
@@ -52,8 +51,13 @@ public class PauseMenu extends Actor {
 
         // shape to draw buttons on
         shapeRend.setAutoShapeType(true);
-        shapeRend.setProjectionMatrix(screen.camera.combined);
         shapeRend.setColor(0.772f, 0.027f, 0.168f, 0.4f);
+        shapeRend.setProjectionMatrix(screen.UIcamera.combined);
+
+        // PAUSED text
+        glyphLayout = new GlyphLayout(screen.game.font, Const.TEXT[9]);
+        ptextW = glyphLayout.width;
+        ptextH = glyphLayout.height;
 
         this.setZIndex(0);
     }
@@ -62,6 +66,7 @@ public class PauseMenu extends Actor {
     public void act(float delta) {
         super.act(delta);
     }
+    GlyphLayout glyphLayout;
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
@@ -74,5 +79,7 @@ public class PauseMenu extends Actor {
         shapeRend.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
         batch.begin();
+
+        screen.game.font.draw(batch, glyphLayout,screen.UIcamera.position.x-ptextW/2,screen.UIcamera.position.y+ptextH/2);
     }
 }

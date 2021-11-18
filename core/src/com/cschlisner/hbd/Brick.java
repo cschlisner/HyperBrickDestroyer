@@ -140,6 +140,7 @@ public class Brick extends Actor implements Collision {
     public void draw(Batch batch, float parentAlpha) {
         Color color = getColor();
         batch.setColor(color.r, color.g, color.b, color.a * parentAlpha);
+        batch.setProjectionMatrix(getStage().getCamera().combined);
 
         if (health > 0)
             batch.draw(brickTexture, getX(), getY(), getOriginX(), getOriginY(),
@@ -196,7 +197,7 @@ public class Brick extends Actor implements Collision {
             case BallSpawn:
                 Ball[] balls = new Ball[2];
                 for (Ball b : balls) {
-                    b = new Ball(manager.screen, manager, false);
+                    b = new Ball(manager.screen, false);
                     b.setPosition(cx+rng.nextFloat()*40-20,cy);
                     b.velocity = new Vector2(rng.nextFloat()*2-1, 1.0f);
                     b.isDead=false;

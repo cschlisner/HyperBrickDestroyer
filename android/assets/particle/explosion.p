@@ -58,8 +58,8 @@ scaling0: 1.0
 timelineCount: 1
 timeline0: 0.0
 - X Scale - 
-lowMin: 32.0
-lowMax: 32.0
+lowMin: 2.0
+lowMax: 2.0
 highMin: 146.0
 highMax: 200.0
 relative: false

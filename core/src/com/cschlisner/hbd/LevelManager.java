@@ -111,8 +111,8 @@ public class LevelManager {
 
 
         Brick b = new Brick(this,0,0,1);
-        BRKH = (int)b.getHeight();
-        BRKW = (int)b.getWidth();
+        BRKH = (int)(b.getHeight() / Const.PPM);
+        BRKW = (int)(b.getWidth() / Const.PPM);
 
         header = SCRH/9;
         margin = BRKW;

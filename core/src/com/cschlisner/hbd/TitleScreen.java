@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Event;
@@ -27,49 +28,36 @@ import java.util.Stack;
 
 public class TitleScreen implements Screen {
     final HyperBrickGame game;
+    public AssetManager assManager;
 
-
-
-    AssetManager assManager;
 
     SpriteBatch batch = new SpriteBatch();
-    FreeTypeFontGenerator.FreeTypeFontParameter fontParameter;
-    FreeTypeFontGenerator fontGenerator;
 
     BitmapFont titlefont;
-    BitmapFont titlefont2;
-    BitmapFont titlefont3;
 
-    float SCRW, SCRH;
-
-    OrthographicCamera camera;
     Stage stage;
     final TextButton zenBtn, challengeBtn, createBtn, settingBtn;
-
 
     public TitleScreen(final HyperBrickGame game){
         this.game = game;
         this.assManager = game.assetManager;
 
-        fontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("font/VerminVibes1989.ttf"));
-        fontParameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        fontParameter.size=230;
-        titlefont = fontGenerator.generateFont(fontParameter);
+        titlefont = game.font;
 
-        camera = new OrthographicCamera();
-        camera.setToOrtho(false, Const.VIEW_WIDTH, Const.VIEW_HEIGHT);
-        SCRH = camera.viewportHeight;
-        SCRW = camera.viewportWidth;
-        stage = new Stage(new ScreenViewport(camera));
-        stage.getBatch().setProjectionMatrix(camera.combined);
-        zenBtn = new TextButton(assManager, Const.TEXT[2],"VerminVibes1989.ttf", 150, 1000, 1300);
-        challengeBtn = new TextButton(assManager, Const.TEXT[3],"VerminVibes1989.ttf", 150, 700, zenBtn.texty-200);
-        createBtn = new TextButton(assManager, Const.TEXT[4],"VerminVibes1989.ttf", 150, 900, challengeBtn.texty-200);
-        settingBtn = new TextButton(assManager, Const.TEXT[5],"VerminVibes1989.ttf", 150, 800, createBtn.texty-200);
+        stage = new Stage(game.textVP);
+        stage.getBatch().setProjectionMatrix(game.textCamera.combined);
+
+        float space = game.textCamera.viewportHeight/11;
+        zenBtn = new TextButton(assManager, Const.TEXT[2],Const.fontr(2, 3), game.TSCRX + game.TSCRW*0.5f,game.TSCRY+ game.TSCRH*0.35f);
+        challengeBtn = new TextButton(assManager, Const.TEXT[3],Const.fontr(2, 3), game.TSCRX+game.TSCRW*0.2f, zenBtn.texty-space);
+        createBtn = new TextButton(assManager, Const.TEXT[4],Const.fontr(2, 3), game.TSCRX+game.TSCRW*0.3f, challengeBtn.texty-space);
+        settingBtn = new TextButton(assManager, Const.TEXT[5],Const.fontr(2, 3), game.TSCRX+game.TSCRW*0.2f, createBtn.texty-space);
         stage.addActor(zenBtn);
         stage.addActor(challengeBtn);
         stage.addActor(createBtn);
         stage.addActor(settingBtn);
+
+        game.updateCamera();
     }
     @Override
     public void show() {
@@ -80,7 +68,6 @@ public class TitleScreen implements Screen {
             public void run() {
                 game.setMode(HyperBrickGame.GameMode.ZEN);
                 game.setScreen(new GameScreen(game));
-                cacheScreen();
                 dispose();
             }
         });
@@ -90,7 +77,6 @@ public class TitleScreen implements Screen {
             public void run() {
                 game.setMode(HyperBrickGame.GameMode.CHALLENGE);
                 game.setScreen(new GameScreen(game));
-                cacheScreen();
                 dispose();
             }
         });
@@ -98,8 +84,30 @@ public class TitleScreen implements Screen {
 
     }
 
-    public void cacheScreen(){
-        game.screenstack.push(this);
+    float colorDelta=0.0f;
+    float colDir = 0.01f;
+    @Override
+    public void render(float delta) {
+        colorDelta += colDir;
+        if (colorDelta>=0.9f||colorDelta<0.01f)
+            colDir=-colDir;
+
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        batch.setProjectionMatrix(game.textCamera.combined);
+
+        batch.begin();
+
+        float H = Interpolation.linear.apply(0.0f, 359.9999f, colorDelta);
+        Color newCol = HSBtoColor(H, 0.5f, 0.8f);
+        titlefont.setColor(newCol);
+
+        titlefont.draw(batch, Const.TEXT[0], game.TSCRX, game.TSCRY+game.TSCRH*0.9f);
+
+        batch.end();
+
+        stage.act(delta);
+        stage.draw();
     }
 
     // for animating Title color (can't use java.awt)
@@ -128,25 +136,6 @@ public class TitleScreen implements Screen {
             RGB[i] = (RGBprime[i++]+m);
 
         return new Color(RGB[0],RGB[1],RGB[2],1);
-    }
-
-    float colorDelta=0.0f;
-    float colDir = 0.01f;
-    @Override
-    public void render(float delta) {
-        colorDelta += colDir;
-        if (colorDelta>=0.9f||colorDelta<0.01f)
-            colDir=-colDir;
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        batch.begin();
-        float H = Interpolation.linear.apply(0.0f, 359.9999f, colorDelta);
-        Color newCol = HSBtoColor(Interpolation.linear.apply(0.0f, 359.9999f, colorDelta), 0.5f, 0.8f);
-        titlefont.setColor(newCol);
-//        System.out.println(String.format("H:%s => %s b:%s f:%s", H, newCol,batch.getColor(), titlefont.getColor()));
-        titlefont.draw(batch, "Hyper\nBrick\nDestroyer", SCRW/11.0f,SCRH*0.95f);
-        batch.end();
-        stage.act(delta);
-        stage.draw();
     }
 
     @Override
