@@ -36,7 +36,7 @@ public class Ball extends Actor {
 
     float r;
     Vector2 velocity;
-    Vector2 position;
+    public Vector2 position;
     Vector2 defPosition;
     public float defSpeed = Const.BALL_SPEED;
     float speed = defSpeed;

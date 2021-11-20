@@ -15,7 +15,7 @@ public class InfoBar extends Actor {
     GameScreen screen;
     public int lives;
     public int score;
-    public int level;
+    public int level = Const.START_LEVEL;
     BitmapFont font;
     BitmapFont markerFont;
     ShapeRenderer shapeRend = new ShapeRenderer();
@@ -39,7 +39,7 @@ public class InfoBar extends Actor {
         float height = Const._STATUS_HEIGHT + mgy/2;
 
         // drawing area
-        setBounds(0,scrh-height,scrw,height);
+        setBounds(screen.game.TSCRX,scrh-height,scrw,height);
         shapeRend.setProjectionMatrix(screen.UIcamera.combined);
 
         pauseBtn = new TextButton(screen.assManager, Const.TEXT[6], Const.fontr(2,1), getX(), getY()+mgy);

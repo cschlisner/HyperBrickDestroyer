@@ -8,10 +8,8 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -21,7 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.Viewport;
 import com.cschlisner.hbd.HyperBrickGame;
 import com.cschlisner.hbd.actor.Wall;
 import com.cschlisner.hbd.actor.ui.InfoBar;
@@ -31,8 +28,6 @@ import com.cschlisner.hbd.actor.PlayerPaddle;
 import com.cschlisner.hbd.actor.Ball;
 import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.util.Const;
-
-import org.graalvm.compiler.asm.sparc.SPARCAssembler;
 
 public class GameScreen implements Screen {
 	public final HyperBrickGame game;
@@ -51,9 +46,6 @@ public class GameScreen implements Screen {
 	public InfoBar infoBar;
 
 	InputMultiplexer inputMultiplexer = new InputMultiplexer();
-
-	// Box2D
-
 
 	private boolean waitingOnKickOff = true;
 	private boolean paused = false;
@@ -76,11 +68,9 @@ public class GameScreen implements Screen {
 		this.assManager = game.assetManager;
 		this.camera = game.camera;
 		this.UIcamera = game.textCamera;
-		Viewport fitViewPort = game.gameVP;
-//		fitViewPort.apply();
 
 		// Scene2d things
-		gameStage = new Stage(fitViewPort);
+		gameStage = new Stage(game.gameVP);
 		gameStage.getBatch().setProjectionMatrix(camera.combined);
 
 		UIStage = new Stage(game.textVP);
@@ -163,7 +153,7 @@ public class GameScreen implements Screen {
 	public void update(float delta){
 		if (!stopEngine){
 			// update box2d physics
-			game.getWorld().step(1/ Const._FRAMERATE, 6,2);
+			game.getWorld().step(1/ Const.FRAMERATE, 6,2);
 		}
 
 		// update actors in scene2d scene
@@ -184,6 +174,13 @@ public class GameScreen implements Screen {
 			stopEngine = true;
 			advanceLevel();
 		}
+
+//		// update camera
+////		if (ball.position.x < game.CAMOX)
+////			game.translateCamera(ball.position.x-game.CAMOX, 0);
+////		else if (ball.position.x > game.CAMOX+game.SCRW)
+////			game.translateCamera(ball.position.x-game.CAMOX+game.SCRW, 0);
+//		game.updateCamera(ball.position.x, ball.position.y);
 	}
 
 	public void advanceLevel(){

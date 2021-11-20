@@ -112,8 +112,8 @@ public class PlayerPaddle extends Actor {
     @Override
     public void setWidth(float width) {
         paddleShape = new PolygonShape();
-        float x=getX(), y=defpaddley, w=width, h=defaultHeight;
-        setBounds(x, y, w, h);
+        float x=getX(), y=getY(), h=defaultHeight;
+        setBounds(x, y, width, h);
         paddleShape.setAsBox(width/2, defaultHeight/2);
         FixtureDef fDef = new FixtureDef();
         fDef.filter.categoryBits = Const.PADDLE_FLAG;

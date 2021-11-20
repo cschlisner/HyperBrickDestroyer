@@ -191,6 +191,10 @@ public class HyperBrickGame extends Game {
         return mode;
     }
 
+    public void translateCamera(float tx, float ty){
+        updateCamera(CAMX+tx, CAMY+ty);
+    }
+
     public void updateCamera(){
         updateCamera(this.CAMX, this.CAMY);
     }

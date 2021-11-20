@@ -96,7 +96,7 @@ public class Const {
      * World params
      */
     public static final float PPM = 100;
-    public static final float _FRAMERATE = 60.0f;
+    public static final float FRAMERATE = 60.0f;
 
     /* Camera information */
     public static final int VIEW_WIDTH = Gdx.graphics.getWidth();
@@ -107,6 +107,7 @@ public class Const {
 
     public static final float REFDISP_x = 1440;
     public static final float REFDISP_y = 2533;
+
     // text sizes
     public static final int _TEXT_LG = (int)(200.0f * ((float)VIEW_WIDTH/REFDISP_x));
     public static final int _TEXT_MD = (int)((float)_TEXT_LG*0.75f);
@@ -150,7 +151,8 @@ public class Const {
     /* Color information */
     
     /* Level information*/
-    public static float LEVEL_WIDTH_SCALAR=1f;
+    public static final int START_LEVEL = 0;
+    public static float LEVEL_WIDTH_SCALAR=1.2f;
     public static float LEVEL_HEIGHT_SCALAR=1f;
 
     public static final int[][][] testLevels = {
@@ -163,12 +165,12 @@ public class Const {
                 {0,0,0,0,2,0,0,0}
             },
             {
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,2,0,0,0}
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,2,0,0,0}
             },
             {
                 {0,0,0,0,0,0,0,0},

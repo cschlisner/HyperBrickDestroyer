@@ -50,9 +50,14 @@ public class Level {
         wallGroup = new Group();
         actorGroup = new Group();
 
+        float w_scl = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
+        w_scl = (w_scl>0)?w_scl:1;
+        float h_scl = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
+        h_scl = (h_scl>0)?h_scl:1;
+
         // we will be drawing from lr = (-WRLDW/2,0)
-        WRLDW = game.SCRW * Const.LEVEL_WIDTH_SCALAR;// * level_c;
-        WRLDH = game.SCRH * Const.LEVEL_HEIGHT_SCALAR;// * level_c;
+        WRLDW = game.SCRW * w_scl;
+        WRLDH = game.SCRH * h_scl;
         WRLDWR = WRLDW*0.5f;
         WRLDHR = WRLDH*0.5f;
 

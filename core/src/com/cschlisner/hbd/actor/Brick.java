@@ -34,7 +34,7 @@ public class Brick extends Actor {
         BallSpeed,
         PaddleBig,
         BallSpawn,
-        Explosive;
+        Explosive
     }
     public static Hashtable<BrickType,Color> brickColors = new Hashtable<>();
     public static final int BRICKTYPE_COUNT = BrickType.values().length;
@@ -173,7 +173,6 @@ public class Brick extends Actor {
                     --level.bricksToClear;
                 }
                 remove();
-                this.body.getWorld().destroyBody(this.body);
             }
         }
         else if (health < maxHealth)
@@ -211,6 +210,7 @@ public class Brick extends Actor {
 
     public void brickBroken(){
         this.health = -1;
+        this.body.getWorld().destroyBody(this.body);
         breakEffect.start();
         breakSound.play();
         switch (type){
