@@ -1,8 +1,8 @@
 package com.cschlisner.hbd;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
@@ -13,7 +13,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGeneratorLoader;
@@ -25,18 +24,17 @@ import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
-
-import java.util.Stack;
+import com.cschlisner.hbd.screen.TitleScreen;
+import com.cschlisner.hbd.util.CollisionHandler;
+import com.cschlisner.hbd.util.Const;
 
 public class HyperBrickGame extends Game {
-    Viewport gameVP;
-    OrthographicCamera camera; // used for drawing textures, game world
-    Viewport textVP;
-    OrthographicCamera textCamera; // use for drawing UI
+    public Viewport gameVP;
+    public OrthographicCamera camera; // used for drawing textures, game world
+    public Viewport textVP;
+    public OrthographicCamera textCamera; // use for drawing UI
 
 
     // Game Camera Data
@@ -49,13 +47,15 @@ public class HyperBrickGame extends Game {
     public float TSCRH;
     public float TSCRW;
     public float TSCRX, TSCRY;
+    public float TCMRX; // textcamera to camera ratios
+    public float TCMRY; // textcamera to camera ratios
 
     TitleScreen titleScreen; // entry point to rest of game
     // For drawing splash screen
     public SpriteBatch spriteBatch;
     public BitmapFont font, loadingfont;
-    AssetManager assetManager;
-    FreeTypeFontGenerator fontGenerator;
+    public AssetManager assetManager;
+    public FreeTypeFontGenerator fontGenerator;
 
     // curent game mode
     public enum GameMode {
@@ -69,8 +69,8 @@ public class HyperBrickGame extends Game {
     // world to use, initialize as much stuff as possible while we are on a loading screen
     private World world;
     private Vector2 gravity;
-    Box2DDebugRenderer debugRenderer;
-    public boolean debug = true;
+    public Box2DDebugRenderer debugRenderer;
+    public boolean debug = false;
 
     @Override
     public void create() {
@@ -82,7 +82,6 @@ public class HyperBrickGame extends Game {
         this.SCRW = this.camera.viewportWidth;
         this.SCRHR = SCRH*0.5f;
         this.SCRWR = SCRW*0.5f;
-        this.ASPR = (float)Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
 
         textCamera = new OrthographicCamera(Const.VIEW_WIDTH, Const.VIEW_HEIGHT);
 //        textVP = new ExtendViewport(textCamera.viewportWidth, textCamera.viewportHeight, textCamera);
@@ -93,9 +92,12 @@ public class HyperBrickGame extends Game {
         this.TSCRW = this.textCamera.viewportWidth;
         this.TSCRX = this.textCamera.position.x - (this.TSCRW/2);
         this.TSCRY = this.textCamera.position.y - (this.TSCRH/2);
+        this.TCMRX = this.textCamera.viewportWidth / this.camera.viewportWidth;
+        this.TCMRY = this.textCamera.viewportHeight / this.camera.viewportHeight;
+
         // set camera default coordingates to center on x-axis
-        // camera bottom left is now (0,0)
-        updateCamera(SCRWR, SCRHR);
+        // camera bottom center is now (0,0)
+        updateCamera(0, SCRHR);
 
 //        System.out.println(String.format("CAM: %s, (%0.2f,%0.2f) vW:0.2f %vH:0.2f | VIEW: %s, ", splashView.));
         // FOr drawing title and progress etc
@@ -155,12 +157,14 @@ public class HyperBrickGame extends Game {
         }
 
         // create a world to use for the rest of the games. Should be mutable
-        this.gravity = new Vector2(0.0f,-1);
+        this.gravity = new Vector2(0.0f,0.0f);
         this.world = new World(gravity, true);
         this.debugRenderer = new Box2DDebugRenderer();
+        this.world.setContactListener(new CollisionHandler());
 
         //debugging...
 //        drawBounds();
+        Gdx.app.setLogLevel(Application.LOG_DEBUG);
     }
 
     public void setGravity(Vector2 gravity) {
@@ -194,6 +198,10 @@ public class HyperBrickGame extends Game {
     public void updateCamera(float x, float y){
         camera.position.set(x,y,0);
         camera.update();
+        this.SCRH = this.camera.viewportHeight;
+        this.SCRW = this.camera.viewportWidth;
+        this.SCRHR = SCRH*0.5f;
+        this.SCRWR = SCRW*0.5f;
         this.CAMX = camera.position.x;
         this.CAMY = camera.position.y;
         this.CAMOX = CAMX-SCRWR;

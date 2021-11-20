@@ -1,4 +1,4 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.actor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
@@ -7,17 +7,24 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.cschlisner.hbd.actor.ui.InfoBar;
+import com.cschlisner.hbd.util.Const;
+import com.cschlisner.hbd.util.Level;
 
 import java.util.Hashtable;
 import java.util.Random;
 
-public class Brick extends Actor implements Collision {
+public class Brick extends Actor {
+    static Random rng = new Random();
 
-    public static Hashtable<BrickType,Color> brickColors = new Hashtable<>();
-
+    // Bricktypes / colors
     public enum BrickType {
         Normal,
         Weak,
@@ -27,11 +34,10 @@ public class Brick extends Actor implements Collision {
         BallSpeed,
         PaddleBig,
         BallSpawn,
-        Explosive
+        Explosive;
     }
+    public static Hashtable<BrickType,Color> brickColors = new Hashtable<>();
     public static final int BRICKTYPE_COUNT = BrickType.values().length;
-    static Random rng = new Random();
-
     static {
 
         Color[] palate = {Color.SLATE, Color.CYAN, Color.LIGHT_GRAY, Color.WHITE,
@@ -42,65 +48,58 @@ public class Brick extends Actor implements Collision {
             brickColors.put(t, palate[i++]);
     }
 
-    Rectangle boundingBox;
 
-    @Override
-    public Rectangle getBoundingBox() {
-        return boundingBox;
-    }
-
-    @Override
-    public void handleCollision() {
-        takeDamage();
-    }
-
-
-    LevelManager manager;
-    BrickType type;
-
-    TextureRegion brickTexture;
-    TextureRegion[][] dmgTextures;
-
+    Level level;
+    public BrickType type;
     float maxHealth;
     float health;
+    int mapx,mapy;
+
+    // Scene2D
+    TextureRegion brickTexture;
+    TextureRegion[][] dmgTextures;
     ParticleEffect breakEffect;
     ParticleEffect explodeEffect;
     Sound breakSound, hitSound, hitImmune, explodeSound;
-
-    int mapx,mapy;
     float cx;
     float cy;
+
+    // Box2d stuff
+    Vector2 position;
+    BodyDef bodyDef;
+    Body body;
+    Fixture fixture;
+    PolygonShape brickShape;
+    float movementSpeed = 0.01f;
 
     /*
         x,y = coordinates in LevelManager's brick table
      */
-    public Brick(LevelManager manager, int x, int y, int typeInd){
-        this.manager = manager;
+    public Brick(Level level, int x, int y, int typeInd){
+        this.level = level;
         this.type = BrickType.values()[typeInd-1];
         setColor(brickColors.get(type));
 
         // textures: brick type texture and damage textures
-        Texture dmgTexture = manager.screen.assManager.get(Const.TEXTURES[2], Texture.class);
+        Texture dmgTexture = level.game.assetManager.get(Const.TEXTURES[2], Texture.class);
         dmgTextures = TextureRegion.split(dmgTexture, dmgTexture.getWidth() / 6, dmgTexture.getHeight());
-        Texture brickTex = manager.screen.assManager.get(Const.TEXTURES[2+typeInd], Texture.class);
+        Texture brickTex = level.game.assetManager.get(Const.TEXTURES[2+typeInd], Texture.class);
         brickTexture = new TextureRegion(brickTex);
-
 
         // spacial vars
         mapx = x;
         mapy = y;
-        float tw = brickTex.getWidth();
-        float th = brickTex.getHeight();
+        float tw = brickTex.getWidth() / Const.PPM; // drawing to world-space
+        float th = brickTex.getHeight() / Const.PPM;
 
-        float dx = manager.DRAW_X+(x*tw);
-        float dy = manager.DRAW_Y-(y*th);
+        float dx = level.DRAW_X+(x*tw);
+        float dy = level.DRAW_Y-(y*th);
         setBounds(dx,dy,tw,th);
-        boundingBox = new Rectangle(dx,dy,tw,th);
-
         cx = dx + (tw/2);
         cy = dy + (th/2);
 
         // Effects: break and explode (for tnt)
+        // todo: load effects from asset manager
         breakEffect = new ParticleEffect();
         breakEffect.load(Gdx.files.internal(type==BrickType.Explosive?"particle/explosion.p":"particle/brickbroke.p"),
                 Gdx.files.internal("particle"));
@@ -114,19 +113,37 @@ public class Brick extends Actor implements Collision {
         }
 
         // sounds sometimes get unloaded if application gets paused?
-        reloadSounds();
+        breakSound = level.game.assetManager.get(Const.SOUNDS[3], Sound.class);
+        hitSound = level.game.assetManager.get(Const.SOUNDS[6], Sound.class);
+        hitImmune = level.game.assetManager.get(Const.SOUNDS[4], Sound.class);
+        explodeSound = level.game.assetManager.get(Const.SOUNDS[5], Sound.class);
 
         // handle brick type specific attributes
         maxHealth = type==BrickType.Weak?1:type==BrickType.Tough?4:2;
         health= maxHealth;
 
+
+        this.body = createBody(new Vector2(cx,cy));
+
     }
 
-    public void reloadSounds(){
-        breakSound = manager.screen.assManager.get(Const.SOUNDS[3], Sound.class);
-        hitSound = manager.screen.assManager.get(Const.SOUNDS[6], Sound.class);
-        hitImmune = manager.screen.assManager.get(Const.SOUNDS[4], Sound.class);
-        explodeSound = manager.screen.assManager.get(Const.SOUNDS[5], Sound.class);
+    private Body createBody(Vector2 position){
+        bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.KinematicBody;
+        bodyDef.position.set(position);
+        Body body = level.game.getWorld().createBody(bodyDef);
+        brickShape = new PolygonShape();
+        brickShape.setAsBox(getWidth()/2, getHeight()/2);
+        FixtureDef fDef = new FixtureDef();
+        fDef.filter.categoryBits = Const.BRICK_FLAG;
+        fDef.filter.maskBits = Const._COLLISION_MASK;
+        fDef.shape = brickShape;
+        fDef.density = Const.BRICK_DENSITY;
+        fDef.friction = Const.BRICK_FRICTION;
+        fDef.restitution = Const.BRICK_RESTITUTION;
+        fixture = body.createFixture(fDef);
+        fixture.setUserData(this);
+        return body;
     }
 
     // return a Texture based on how damaged the brick is
@@ -145,13 +162,18 @@ public class Brick extends Actor implements Collision {
         if (health > 0)
             batch.draw(brickTexture, getX(), getY(), getOriginX(), getOriginY(),
                 getWidth(), getHeight(), 1, 1, getRotation());
-        if (health <= 0) {
+        if (health==0)
+            brickBroken();
+        if (health < 0) {
             breakEffect.update(Gdx.graphics.getDeltaTime());
             breakEffect.draw(batch);
             if (breakEffect.isComplete()) {
                 breakEffect.reset();
-                --manager.levelBrickCount;
+                if (type != BrickType.Immune) {
+                    --level.bricksToClear;
+                }
                 remove();
+                this.body.getWorld().destroyBody(this.body);
             }
         }
         else if (health < maxHealth)
@@ -183,27 +205,24 @@ public class Brick extends Actor implements Collision {
             return;
         }
         --health;
-        if (health==0)
-            brickBroken();
-        else hitSound.play();
-        getInfobar().score += 10;
+        hitSound.play();
+        level.manager.incScore();
     }
 
-    private void brickBroken(){
-        boundingBox = null;
+    public void brickBroken(){
+        this.health = -1;
         breakEffect.start();
         breakSound.play();
         switch (type){
             case BallSpawn:
                 Ball[] balls = new Ball[2];
                 for (Ball b : balls) {
-                    b = new Ball(manager.screen, false);
-                    b.setPosition(cx+rng.nextFloat()*40-20,cy);
-                    b.velocity = new Vector2(rng.nextFloat()*2-1, 1.0f);
-                    b.isDead=false;
-                    manager.spawnedBalls.addActor(b);
+                    b = new Ball(level, false);
+                    b.body.setTransform(new Vector2(cx+rng.nextFloat()*4-4,cy),0);
+                    level.spawnedBalls.addActor(b);
+                    b.kickOff(1);
                 }
-                getStage().addActor(manager.spawnedBalls);
+                getStage().addActor(level.spawnedBalls);
                 break;
             case PaddleSmall:
                 getPaddle().setWidth(getPaddle().getWidth()/1.5f);
@@ -212,11 +231,11 @@ public class Brick extends Actor implements Collision {
                 getPaddle().setWidth(getPaddle().getWidth()*1.5f);
                 break;
             case BallSpeed:
-                getBall().speed*=1.5;
+                getBall().incSpeed(1.5f);
                 break;
             case Explosive:
                 explodeSound.play();
-                for (Brick b : manager.getNeighbors(mapx,mapy,1)) {
+                for (Brick b : level.getNeighbors(mapx,mapy,1)) {
                     // avoids circular reference in case two explosives are next to eachother
                     if (b.health>0) {
                         b.health = 0;
@@ -251,10 +270,6 @@ public class Brick extends Actor implements Collision {
 
     public void disposeAssests(){
         if (breakEffect!=null) breakEffect.dispose();
-        breakSound.dispose();
-        explodeSound.dispose();
-        hitSound.dispose();
         if (explodeEffect!=null) explodeEffect.dispose();
-        hitImmune.dispose();
     }
 }

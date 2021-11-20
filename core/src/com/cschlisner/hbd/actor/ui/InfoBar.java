@@ -1,29 +1,28 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.actor.ui;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.cschlisner.hbd.actor.ui.TextButton;
+import com.cschlisner.hbd.screen.GameScreen;
+import com.cschlisner.hbd.util.Const;
 
 public class InfoBar extends Actor {
     GameScreen screen;
-    int lives;
-    int score;
-    int level;
+    public int lives;
+    public int score;
+    public int level;
     BitmapFont font;
     BitmapFont markerFont;
     ShapeRenderer shapeRend = new ShapeRenderer();
     float scrw, mgx;
     float scrh, mgy;
 
-    TextButton pauseBtn;
+    public TextButton pauseBtn;
 
     public InfoBar(GameScreen screen){
         this.screen = screen;
@@ -38,8 +37,6 @@ public class InfoBar extends Actor {
         mgx = 0; // margins
         mgy = font.getLineHeight();
         float height = Const._STATUS_HEIGHT + mgy/2;
-
-//        markerFont.getData().setLineHeight(height);
 
         // drawing area
         setBounds(0,scrh-height,scrw,height);
@@ -75,27 +72,7 @@ public class InfoBar extends Actor {
 
     }
 
-//    markLocation(batch, getX(), getY(), Color.LIME, "TOPR");
-//    markLocation(batch, getX()+scrw, getY(), Color.YELLOW, "TOPL");
-//    markLocation(batch, 0, 0, Color.RED, "ORGIN");
-//    markLocation(batch, screen.game.TSCRX, 0, Color.RED, "ORGIN");
-//    markLocation(batch, scrw/2,scrh/2, Color.BLUE, "CENT");
-//    markLocation(batch, scrw,0, Color.MAGENTA, "BOTR");
-//    public void markLocation(Batch batch, float x, float y, Color color, String str){
-//        batch.end();
-//        shapeRend.setColor(color);
-//        shapeRend.begin(ShapeRenderer.ShapeType.Filled);
-//        shapeRend.circle(x,y,50);
-//        shapeRend.end();
-//        batch.begin();
-//        batch.setColor(color);
-//        markerFont.setColor(color);
-//        markerFont.draw(batch, String.format("%s(%.2f.%.2f)",str,x,y), x,y);
-//        markerFont.draw(batch, String.format("%s(%.2f.%.2f)",str,x,y), x,y);
-//    }
-
     public void dispose(){
         shapeRend.dispose();
-        font.dispose();
     }
 }

@@ -1,4 +1,4 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.util;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -8,8 +8,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import java.util.ArrayList;
 
 public class TextureAnimator {
-    TextureRegion still;
-    ArrayList<Animation<TextureRegion>> animations = new ArrayList<>();
+    public TextureRegion still;
+    public ArrayList<Animation<TextureRegion>> animations = new ArrayList<>();
     private int anim_mode = 0;
     public float duration = 0;
     public TextureAnimator(Texture texture, int frames, int modes, float frameDuration){

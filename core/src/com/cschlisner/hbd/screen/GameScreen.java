@@ -1,8 +1,7 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.screen;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
@@ -10,46 +9,46 @@ import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Event;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
-import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.cschlisner.hbd.HyperBrickGame;
+import com.cschlisner.hbd.actor.Wall;
+import com.cschlisner.hbd.actor.ui.InfoBar;
+import com.cschlisner.hbd.util.LevelManager;
+import com.cschlisner.hbd.actor.ui.PauseMenu;
+import com.cschlisner.hbd.actor.PlayerPaddle;
+import com.cschlisner.hbd.actor.Ball;
+import com.cschlisner.hbd.actor.Brick;
+import com.cschlisner.hbd.util.Const;
 
-import java.util.logging.Logger;
+import org.graalvm.compiler.asm.sparc.SPARCAssembler;
 
 public class GameScreen implements Screen {
-	final HyperBrickGame game;
-	AssetManager assManager;
+	public final HyperBrickGame game;
+	public AssetManager assManager;
 
 	// Camera
-	Camera camera, UIcamera;
+	public Camera camera;
+	public Camera UIcamera;
 
 	// Scene2D
 	private Stage gameStage, UIStage;
 	PlayerPaddle paddle;
 	PauseMenu menuOverlay;
 	Ball ball;
-	LevelManager levelManager;
-	InfoBar infoBar;
+	public LevelManager levelManager;
+	public InfoBar infoBar;
 
 	InputMultiplexer inputMultiplexer = new InputMultiplexer();
 
@@ -58,6 +57,18 @@ public class GameScreen implements Screen {
 
 	private boolean waitingOnKickOff = true;
 	private boolean paused = false;
+
+	private InputListener ballKickOffListener = new InputListener(){
+		@Override
+		public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+			stopEngine = false;
+			ball.kickOff();
+			waitingOnKickOff = false;
+			paddle.paddleInput.removeListener(this);
+			return true;
+		}
+	};
+
 
 
 	public GameScreen(final HyperBrickGame game){
@@ -75,46 +86,9 @@ public class GameScreen implements Screen {
 		UIStage = new Stage(game.textVP);
 		UIStage.getBatch().setProjectionMatrix(game.textCamera.combined);
 
-		FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
-		p.size=20;
-		markerFont = game.fontGenerator.generateFont(p);
-	}
+		markerFont = assManager.get(Const.fontr(1,0));
 
-	public void advanceLevel(){
-		++infoBar.level;
-		if (game.getMode()== HyperBrickGame.GameMode.CHALLENGE && infoBar.level == LevelManager.testLevels.length){
-			dispose();
-			game.setScreen(new TitleScreen(game));
-			return;
-		}
-
-
-		// remove any leftover balls that spawned
-		//levelManager.spawnedBalls.clearChildren();
-		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
-		ball.handleDeath();
-		waitingOnKickOff = true;
-		infoBar.lives = 3;
-		levelManager.createBricks(infoBar.level);
-		gameStage.addActor(levelManager.brickGroup);
-		paddle.reset();
-
-		// get rid of extra balls
-		for (Actor a : gameStage.getActors()){
-			if (a instanceof Ball && !((Ball) a).isPrimary) {
-				a.remove();
-			}
-		}
-
-		paddle.addListener(new InputListener(){
-			@Override
-			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-				ball.isDead=false;
-				waitingOnKickOff = false;
-				paddle.removeListener(this);
-				return true;
-			}
-		});
+		game.debug = false;
 	}
 
 	@Override
@@ -139,12 +113,9 @@ public class GameScreen implements Screen {
 		// Game Actors (Box2D bodies)
 		paddle = new PlayerPaddle(this);
 		levelManager = new LevelManager(this);
-		ball = new Ball(this, true);
 
-		gameStage.addActor(paddle);
-		gameStage.addActor(ball);
-		gameStage.addActor(levelManager.brickGroup);
-
+        gameStage.addActor(paddle);
+        UIStage.addActor(paddle.paddleInput);
 
 		infoBar.pauseBtn.setOnClick(new Runnable() {
 			@Override
@@ -169,54 +140,95 @@ public class GameScreen implements Screen {
 
     @Override
 	public void render(float delta) {
-//		ScreenUtils.clear(0.52f, 0.73f, 0.94f, 0.6f);
 		ScreenUtils.clear(Color.BLACK);
-
 		game.updateCamera();
 
-		// ball will collide with screen on its own
-		if (ball.isDead){
-			if (!waitingOnKickOff) {
-				--infoBar.lives;
-
-				waitingOnKickOff = true;
-				paddle.addListener(new InputListener(){
-					@Override
-					public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-						ball.isDead=false;
-						waitingOnKickOff = false;
-						gameStage.removeListener(this);
-						return true;
-					}
-				});
-			}
-		}
+		// Draw our stages
 		gameStage.draw();
+		UIStage.draw();
 
-//		if (levelManager.levelBrickCount <= 0)
-//			advanceLevel();
-//
-//		if (infoBar.lives == 0){
-//			dispose();
-//			game.setScreen(new TitleScreen(game));
-//		}
+		// Draw debugging info
 		if (game.debug) {
 			game.debugRenderer.render(game.getWorld(), camera.combined);
 			for (Actor a : gameStage.getActors())
 				markActor(UIStage.getBatch(), a, Color.MAGENTA);
 		}
 
-		UIStage.draw();
-
+		// Update physics amd cameras
 		if (!this.paused) {
 			update(delta);
 		}
-//		else infoBar.pauseBtn.act(delta);
+	}
+	boolean stopEngine;
+	public void update(float delta){
+		if (!stopEngine){
+			// update box2d physics
+			game.getWorld().step(1/ Const._FRAMERATE, 6,2);
+		}
+
+		// update actors in scene2d scene
+		gameStage.act(delta);
+		UIStage.act(delta);
+
+		// check game conditions
+		if (ball.isDead && !waitingOnKickOff) {
+			--infoBar.lives;
+			waitingOnKickOff = true;
+			paddle.paddleInput.addListener(ballKickOffListener);
+		}
+		if (infoBar.lives == 0){
+			dispose();
+			game.setScreen(new TitleScreen(game));
+		}
+		if (levelManager.curLevel.bricksToClear <= 0) {
+			stopEngine = true;
+			advanceLevel();
+		}
 	}
 
+	public void advanceLevel(){
+		if (infoBar.level >= 1) {
+			// reset paddle to center
+			paddle.reset();
+			// reset ball
+			if (ball != null) {
+				ball.remove();
+			}
+			// get rid of extra balls
+			for (Actor a : gameStage.getActors()) {
+				if (a instanceof Ball && !((Ball) a).isPrimary) {
+					a.remove();
+				}
+			}
+			// remove all bricks/walls from previous level
+			for (Actor b : levelManager.curLevel.brickGroup.getChildren())
+				((Brick) b).brickBroken();
+			for (Actor w : levelManager.curLevel.wallGroup.getChildren())
+				((Wall) w).destroy();
+		}
 
-    ShapeRenderer shapeRend = new ShapeRenderer();
-	BitmapFont markerFont;;
+		// NEW LEVEL //
+		++infoBar.level;
+		if (game.getMode()== HyperBrickGame.GameMode.CHALLENGE && infoBar.level == Const.testLevels.length){
+			dispose();
+			game.setScreen(new TitleScreen(game));
+			return;
+		}
+		levelManager.newLevel(infoBar.level);
+
+		ball = new Ball(levelManager.curLevel, true);
+		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
+		waitingOnKickOff = true;
+		infoBar.lives = 3;
+
+		gameStage.addActor(ball);
+		gameStage.addActor(levelManager.curLevel.actorGroup);
+		paddle.paddleInput.addListener(ballKickOffListener);
+	}
+
+	ShapeRenderer shapeRend = new ShapeRenderer();
+	BitmapFont markerFont;
+
 	public void markActor(Batch batch, Actor a, Color color){
 		Vector3 actorPos = camera.project(new Vector3(a.getX(), a.getY(), a.getZIndex()));
 		String str = a.getName();
@@ -233,14 +245,6 @@ public class GameScreen implements Screen {
 		batch.end();
 	}
 
-	public void update(float delta){
-		// update box2d physics
-		game.getWorld().step(1/Const._FRAMERATE, 6,2);
-
-		// update actors in scene2d scene
-		gameStage.act(delta);
-	}
-
 	@Override
 	public void resize (int width, int height) {
 		gameStage.getViewport().update(width, height, true);
@@ -254,6 +258,7 @@ public class GameScreen implements Screen {
 		infoBar.pauseBtn.setText(Const.TEXT[7]);
 		UIStage.addActor(menuOverlay.menuGroup);
 		inputMultiplexer.removeProcessor(gameStage);
+		paddle.paddleInput.switchOff();
 	}
 
 	public void unpause(){
@@ -261,13 +266,12 @@ public class GameScreen implements Screen {
 		menuOverlay.menuGroup.remove();
 		this.paused = false;
 		inputMultiplexer.addProcessor(gameStage);
+		paddle.paddleInput.switchOn();
 	}
 
 	@Override
 	public void resume() {
-		// sounds sometimes get unloaded if application gets paused????
-		for (Actor b : levelManager.brickGroup.getChildren())
-			((Brick)b).reloadSounds();
+
 	}
 
 	@Override
@@ -277,12 +281,11 @@ public class GameScreen implements Screen {
 	
 	@Override
 	public void dispose () {
-		ball.dispose();
-		paddle.dispose();
-		infoBar.dispose();
+		Array<Body> bodies = new Array<>();
+		game.getWorld().getBodies(bodies);
+		for (Body body : bodies)
+			game.getWorld().destroyBody(body);
 		gameStage.dispose();
 		UIStage.dispose();
-		for (Actor b : levelManager.brickGroup.getChildren())
-			((Brick)b).disposeAssests();
 	}
 }
