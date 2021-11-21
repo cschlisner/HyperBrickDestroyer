@@ -20,7 +20,7 @@ import java.util.Random;
 public class Level {
     public HyperBrickGame game;
     public LevelManager manager;
-    int level_c; // level counter
+    public int level_c; // level counter
 
     Random rng = new Random();
 
@@ -36,7 +36,8 @@ public class Level {
     /* formatting brick group */
     public float WRLDW;
     public float WRLDH;
-    float WRLDWR, WRLDHR;
+    public float WRLDWR, WRLDHR;
+    public float w_SCL, h_SCL;
     float BRKW, BRKH;
     float margin, header;
     public float DRAW_X, DRAW_Y;
@@ -50,14 +51,14 @@ public class Level {
         wallGroup = new Group();
         actorGroup = new Group();
 
-        float w_scl = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
-        w_scl = (w_scl>0)?w_scl:1;
-        float h_scl = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
-        h_scl = (h_scl>0)?h_scl:1;
+        w_SCL = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
+        w_SCL = 1 + (w_SCL>0? w_SCL :0);
+        h_SCL = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
+        h_SCL = 1 + (h_SCL>0? h_SCL :0);
 
         // we will be drawing from lr = (-WRLDW/2,0)
-        WRLDW = game.SCRW * w_scl;
-        WRLDH = game.SCRH * h_scl;
+        WRLDW = game.SCRW * w_SCL;
+        WRLDH = game.SCRH * h_SCL;
         WRLDWR = WRLDW*0.5f;
         WRLDHR = WRLDH*0.5f;
 
@@ -79,9 +80,10 @@ public class Level {
         createBricks(level_c);
 
         // create wall bounds
-        wallGroup.addActor(new Wall(this, -WRLDWR-0.55f, 0, 1, WRLDH)); //L
-        wallGroup.addActor(new Wall(this, WRLDWR-0.55f, 0, 1, WRLDH)); //R
-        wallGroup.addActor(new Wall(this, -WRLDWR, WRLDH-0.55f, WRLDW, 1)); //T
+        float wallwidth = 1.0f;
+        wallGroup.addActor(new Wall(this, -WRLDWR-wallwidth, 0, wallwidth, WRLDH)); //L
+        wallGroup.addActor(new Wall(this, WRLDWR, 0, wallwidth, WRLDH)); //R
+        wallGroup.addActor(new Wall(this, -WRLDWR, WRLDH, WRLDW, wallwidth)); //T
 
         actorGroup.addActor(wallGroup);
         actorGroup.addActor(brickGroup);

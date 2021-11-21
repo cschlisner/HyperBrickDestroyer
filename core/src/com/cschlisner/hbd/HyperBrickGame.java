@@ -42,6 +42,7 @@ public class HyperBrickGame extends Game {
     public float SCRHR, SCRWR; // 0.5 * SCRW/SCRH
     public float CAMX, CAMY; // X, Y in game units of camera center
     public float CAMOX, CAMOY; // X, Y of camera bottom left corner
+    public float CAMRT, CAMTP; // X, Y of top right corner
     public float ASPR; // aspect ratio
     // Text Camera Data
     public float TSCRH;
@@ -97,7 +98,7 @@ public class HyperBrickGame extends Game {
 
         // set camera default coordingates to center on x-axis
         // camera bottom center is now (0,0)
-        updateCamera(0, SCRHR);
+        resetCamera();
 
 //        System.out.println(String.format("CAM: %s, (%0.2f,%0.2f) vW:0.2f %vH:0.2f | VIEW: %s, ", splashView.));
         // FOr drawing title and progress etc
@@ -191,6 +192,11 @@ public class HyperBrickGame extends Game {
         return mode;
     }
 
+    public void resetCamera(){
+        camera.zoom = 1.0f;
+        updateCamera(0, SCRHR);
+    }
+
     public void translateCamera(float tx, float ty){
         updateCamera(CAMX+tx, CAMY+ty);
     }
@@ -210,6 +216,8 @@ public class HyperBrickGame extends Game {
         this.CAMY = camera.position.y;
         this.CAMOX = CAMX-SCRWR;
         this.CAMOY = CAMY-SCRHR;
+        this.CAMRT = CAMOX+SCRW;
+        this.CAMTP = CAMOY+SCRH;
 
         // set text camera origin (bottom-left) at (0,0) -- NOT CENTERED ON CAMX,CAMY
         // whenever rendering text, pixel units can be used and drawn to the text camera

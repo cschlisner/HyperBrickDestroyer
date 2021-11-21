@@ -8,6 +8,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -22,6 +23,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.cschlisner.hbd.HyperBrickGame;
 import com.cschlisner.hbd.actor.Wall;
 import com.cschlisner.hbd.actor.ui.InfoBar;
+import com.cschlisner.hbd.actor.ui.PaddleInputHandler;
 import com.cschlisner.hbd.util.LevelManager;
 import com.cschlisner.hbd.actor.ui.PauseMenu;
 import com.cschlisner.hbd.actor.PlayerPaddle;
@@ -34,8 +36,8 @@ public class GameScreen implements Screen {
 	public AssetManager assManager;
 
 	// Camera
-	public Camera camera;
-	public Camera UIcamera;
+	public OrthographicCamera camera;
+	public OrthographicCamera UIcamera;
 
 	// Scene2D
 	private Stage gameStage, UIStage;
@@ -101,11 +103,7 @@ public class GameScreen implements Screen {
 
 
 		// Game Actors (Box2D bodies)
-		paddle = new PlayerPaddle(this);
 		levelManager = new LevelManager(this);
-
-        gameStage.addActor(paddle);
-        UIStage.addActor(paddle.paddleInput);
 
 		infoBar.pauseBtn.setOnClick(new Runnable() {
 			@Override
@@ -165,32 +163,28 @@ public class GameScreen implements Screen {
 			--infoBar.lives;
 			waitingOnKickOff = true;
 			paddle.paddleInput.addListener(ballKickOffListener);
+			game.resetCamera();
+			paddle.reset(this.levelManager.curLevel);
 		}
 		if (infoBar.lives == 0){
 			dispose();
 			game.setScreen(new TitleScreen(game));
+			game.resetCamera();
 		}
 		if (levelManager.curLevel.bricksToClear <= 0) {
 			stopEngine = true;
 			advanceLevel();
 		}
 
-//		// update camera
-////		if (ball.position.x < game.CAMOX)
-////			game.translateCamera(ball.position.x-game.CAMOX, 0);
-////		else if (ball.position.x > game.CAMOX+game.SCRW)
-////			game.translateCamera(ball.position.x-game.CAMOX+game.SCRW, 0);
-//		game.updateCamera(ball.position.x, ball.position.y);
+		updateCamera();
 	}
 
 	public void advanceLevel(){
-		if (infoBar.level >= 1) {
-			// reset paddle to center
-			paddle.reset();
+		if (infoBar.level > Const.START_LEVEL) {
+
 			// reset ball
-			if (ball != null) {
-				ball.remove();
-			}
+			ball.remove();
+
 			// get rid of extra balls
 			for (Actor a : gameStage.getActors()) {
 				if (a instanceof Ball && !((Ball) a).isPrimary) {
@@ -212,6 +206,15 @@ public class GameScreen implements Screen {
 			return;
 		}
 		levelManager.newLevel(infoBar.level);
+		game.resetCamera();
+
+		if (paddle==null) {
+			paddle = new PlayerPaddle(this, levelManager.curLevel);
+			gameStage.addActor(paddle);
+			UIStage.addActor(paddle.paddleInput);
+		}
+		// reset paddle to center
+		paddle.reset(levelManager.curLevel);
 
 		ball = new Ball(levelManager.curLevel, true);
 		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
@@ -221,6 +224,38 @@ public class GameScreen implements Screen {
 		gameStage.addActor(ball);
 		gameStage.addActor(levelManager.curLevel.actorGroup);
 		paddle.paddleInput.addListener(ballKickOffListener);
+	}
+
+	private void updateCamera(){
+//		 translation based on paddle x, y
+		float scr_mv_xl = game.CAMOX+Const.BALL_MOVE_MARGINX;
+		float scr_mv_xr = game.CAMRT-Const.BALL_MOVE_MARGINX;
+		float scr_mv_yb = game.CAMOY+Const.BALL_MOVE_MARGINY;
+		float scr_mv_yt = game.CAMTP-Const.BALL_MOVE_MARGINY;
+		float mv_y = 0, mv_x = 0;
+		if (game.CAMOX > -levelManager.curLevel.WRLDWR && paddle.getX() < scr_mv_xl)
+			mv_x = paddle.getX()-scr_mv_xl;
+		else if (game.CAMRT < levelManager.curLevel.WRLDWR && paddle.getRight() > scr_mv_xr)
+			mv_x = paddle.getRight()-scr_mv_xr;
+		if (game.CAMTP < levelManager.curLevel.WRLDH && ball.position.y > scr_mv_yt)
+			mv_y = ball.position.y-scr_mv_yt;
+		if (game.CAMOY > 0 && ball.position.y < scr_mv_yb)
+			mv_y= ball.position.y-scr_mv_yb;
+		game.translateCamera(mv_x * (ball.defSpeed * Const.CAMSMOOTH), mv_y);
+
+		// zoom based on primary ball y
+		float zoom = 1.0f; // min zoom
+		float z = levelManager.curLevel.h_SCL; // z = maximum zoom amount.
+		float H = levelManager.curLevel.WRLDH;
+		float h = 5; // H/h = min height at which we zoom
+		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
+		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
+		float y = ball.position.y;
+
+		if (y >= H/h) {
+			zoom = (z < zoom ? -m*y+b : m*y+b);
+		}
+		camera.zoom = zoom;
 	}
 
 	ShapeRenderer shapeRend = new ShapeRenderer();
