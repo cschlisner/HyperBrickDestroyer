@@ -162,9 +162,9 @@ public class Brick extends Actor {
         if (health > 0)
             batch.draw(brickTexture, getX(), getY(), getOriginX(), getOriginY(),
                 getWidth(), getHeight(), 1, 1, getRotation());
-        if (health==0)
+        if (!broken && health<=0)
             brickBroken();
-        if (health < 0) {
+        if (broken) {
             breakEffect.update(Gdx.graphics.getDeltaTime());
             breakEffect.draw(batch);
             if (breakEffect.isComplete()) {
@@ -207,9 +207,9 @@ public class Brick extends Actor {
         hitSound.play();
         level.manager.incScore();
     }
-
+    public boolean broken;
     public void brickBroken(){
-        this.health = -1;
+        this.broken=true;
         this.body.getWorld().destroyBody(this.body);
         breakEffect.start();
         breakSound.play();

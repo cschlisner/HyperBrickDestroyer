@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.cschlisner.hbd.actor.ui.PaddleInputHandler;
+import com.cschlisner.hbd.util.Level;
 import com.cschlisner.hbd.util.TextureAnimator;
 import com.cschlisner.hbd.screen.GameScreen;
 import com.cschlisner.hbd.util.Const;
@@ -44,10 +45,11 @@ public class PlayerPaddle extends Actor {
     float movementSpeed = 0.1f;
 
     public GameScreen screen;
-    public PlayerPaddle(GameScreen screen){
+    public Level level;
+    public PlayerPaddle(GameScreen screen, Level level){
         this.setName("Paddle");
         this.screen=screen;
-
+        this.level = level;
         // Textures
         Texture texture = screen.assManager.get(Const.TEXTURES[0], Texture.class);
         animator = new TextureAnimator(texture, 5, 1, 0.3f);
@@ -70,11 +72,10 @@ public class PlayerPaddle extends Actor {
         this.body = createBody(new Vector2(defpaddlex,defpaddley));
 
         // paddleInput will draw a scaled version of this paddle on the UI camera
-        paddleInput = new PaddleInputHandler(this);
 
 //        drawBounds();
+        paddleInput = new PaddleInputHandler(this);
     }
-
 
     private Body createBody(Vector2 position){
         bodyDef = new BodyDef();
@@ -101,8 +102,10 @@ public class PlayerPaddle extends Actor {
     }
 
 
-    public void reset(){
+    public void reset(Level level){
+        this.level = level;
         float x=defpaddlex, y=defpaddley, w=defaultWidth, h=defaultHeight;
+        body.setTransform(new Vector2(x,y), 0);
         setBounds(x-w/2, y-h/2, w, h);
         setWidth(defaultWidth);
         paddleInput.reset();
