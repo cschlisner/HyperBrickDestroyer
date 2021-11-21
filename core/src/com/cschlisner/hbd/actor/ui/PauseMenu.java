@@ -14,7 +14,7 @@ import com.cschlisner.hbd.screen.GameScreen;
 import com.cschlisner.hbd.util.Const;
 
 public class PauseMenu extends Actor {
-    private final float SCRH, SCRW, ptextW, ptextH;
+    private final float SCRH, SCRW, OX, OY, ptextW, ptextH;
     private GameScreen screen;
     public TextButton quitBtn, settingsBtn;
     public Group menuGroup = new Group();
@@ -34,13 +34,15 @@ public class PauseMenu extends Actor {
 
         SCRH = screen.UIcamera.viewportHeight;
         SCRW = screen.UIcamera.viewportWidth;
+        OX = screen.game.TSCRX;
+        OY = screen.game.TSCRY;
 
         float w = SCRW*0.9f;
         float h = w*0.5f;
-        setBounds((SCRW-w)/2, SCRH/2.0f-(h/2.0f), w, h);
+        setBounds(OX+(SCRW-w)/2, OY+SCRH/2.0f-(h/2.0f), w, h);
 
         quitBtn = new TextButton(screen.assManager, Const.TEXT[8],Const.fontr(2, 1),getX()+(getWidth())/4.0f, getY()+(h/3.0f));
-        settingsBtn = new TextButton(screen.assManager, Const.TEXT[5],Const.fontr(2, 0), getX()+(getWidth()*0.5f), getY()+(h/3.0f));
+        settingsBtn = new TextButton(screen.assManager, Const.TEXT[5],Const.fontr(2, 0), getX()+(getWidth()/2.0f), getY()+(h/3.0f));
 
         menuGroup.addActor(this);
         menuGroup.addActor(quitBtn);
@@ -77,6 +79,6 @@ public class PauseMenu extends Actor {
         Gdx.gl.glDisable(GL20.GL_BLEND);
         batch.begin();
 
-        screen.game.font.draw(batch, glyphLayout,screen.UIcamera.position.x-ptextW/2,screen.UIcamera.position.y+ptextH/2);
+        screen.game.font.draw(batch, glyphLayout,getX()+(getWidth()-ptextW)/2,getTop()-ptextH);
     }
 }

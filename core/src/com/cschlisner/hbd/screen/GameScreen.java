@@ -3,7 +3,9 @@ package com.cschlisner.hbd.screen;
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
@@ -18,6 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.cschlisner.hbd.HyperBrickGame;
@@ -63,6 +66,54 @@ public class GameScreen implements Screen {
 		}
 	};
 
+	private InputProcessor backButtonListener = new InputProcessor() {
+		@Override
+		public boolean keyDown(int keycode) {
+			switch (keycode){
+				case Input.Keys.BACK:
+					if (paused)
+						unpause();
+					else pause();
+					return true;
+			}
+			return true;
+		}
+
+		@Override
+		public boolean keyUp(int keycode) {
+			return true;
+		}
+
+		@Override
+		public boolean keyTyped(char character) {
+			return false;
+		}
+
+		@Override
+		public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+			return false;
+		}
+
+		@Override
+		public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+			return false;
+		}
+
+		@Override
+		public boolean touchDragged(int screenX, int screenY, int pointer) {
+			return false;
+		}
+
+		@Override
+		public boolean mouseMoved(int screenX, int screenY) {
+			return false;
+		}
+
+		@Override
+		public boolean scrolled(float amountX, float amountY) {
+			return false;
+		}
+	};
 
 
 	public GameScreen(final HyperBrickGame game){
@@ -93,6 +144,8 @@ public class GameScreen implements Screen {
 		// Set up initial input processors
 		inputMultiplexer.addProcessor(gameStage);
 		inputMultiplexer.addProcessor(UIStage);
+		inputMultiplexer.addProcessor(backButtonListener);
+		Gdx.input.setCatchKey(Input.Keys.BACK, true);
 		Gdx.input.setInputProcessor(inputMultiplexer);
 
 		// UI Elements
@@ -121,7 +174,6 @@ public class GameScreen implements Screen {
 			}
 		});
 
-		game.updateCamera();
 
 		advanceLevel();
 	}
@@ -241,21 +293,27 @@ public class GameScreen implements Screen {
 			mv_y = ball.position.y-scr_mv_yt;
 		if (game.CAMOY > 0 && ball.position.y < scr_mv_yb)
 			mv_y= ball.position.y-scr_mv_yb;
-		game.translateCamera(mv_x * (ball.defSpeed * Const.CAMSMOOTH), mv_y);
+
 
 		// zoom based on primary ball y
 		float zoom = 1.0f; // min zoom
-		float z = levelManager.curLevel.h_SCL; // z = maximum zoom amount.
+		float z = levelManager.curLevel.w_SCL * 0.8f; // z = maximum zoom amount.
+		z = z<1?1:z;
 		float H = levelManager.curLevel.WRLDH;
 		float h = 5; // H/h = min height at which we zoom
-		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
-		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
+//		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
+		float m = (z*h-h)/H;
+//		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
+		float b = zoom-(H*m)/h;
 		float y = ball.position.y;
 
 		if (y >= H/h) {
-			zoom = (z < zoom ? -m*y+b : m*y+b);
+//			zoom = (z < zoom ? -m*y+b : m*y+b); // TODO: fix inverse zooming for small levels
+			zoom = m*y+b;
 		}
+		System.out.println("ZOOM: "+zoom+" | "+z);
 		camera.zoom = zoom;
+		game.translateCamera(mv_x * (ball.defSpeed * Const.CAMSMOOTH), mv_y);
 	}
 
 	ShapeRenderer shapeRend = new ShapeRenderer();

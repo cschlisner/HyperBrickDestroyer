@@ -109,8 +109,9 @@ public class Const {
     public static final float REFDISP_y = 2533;
     public static final float BALL_MOVE_MARGIN = 4; // 1/x of screen width, (ASPRM)/x of screen height where ball will move screen
     public static final float BALL_MOVE_MARGINX = VIEW_WIDTHM / BALL_MOVE_MARGIN;
-    public static final float BALL_MOVE_MARGINY = VIEW_HEIGHTM / (ASPRM*BALL_MOVE_MARGIN);
+    public static final float BALL_MOVE_MARGINY = VIEW_HEIGHTM / 2;
     public static final float CAMSMOOTH = 0.005f; // value to slow down camera movement
+
     // text sizes
     public static final int _TEXT_LG = (int)(200.0f * ((float)VIEW_WIDTH/REFDISP_x));
     public static final int _TEXT_MD = (int)((float)_TEXT_LG*0.75f);
@@ -143,9 +144,9 @@ public class Const {
     public static final float PADDLE_RESTITUTION = 0.0f;
     public static final float PADDLE_DENSITY = 1.0f;
 
-    public static final float BRICK_FRICTION = 0.1f;
-    public static final float BRICK_RESTITUTION = 0.1f;
-    public static final float BRICK_DENSITY = 1f;
+    public static final float BRICK_FRICTION = 0.2f;
+    public static final float BRICK_RESTITUTION = 0.9f;
+    public static final float BRICK_DENSITY = 0.4f;
 
     public static final float WALL_FRICTION = 0.0f;
     public static final float WALL_RESTITUTION = 0.3f;
@@ -154,9 +155,11 @@ public class Const {
     /* Color information */
     
     /* Level information*/
-    public static final int START_LEVEL = 10;
-    public static float LEVEL_WIDTH_SCALAR=0.05f;
+    public static final int START_LEVEL = 0;
+    public static float LEVEL_WIDTH_SCALAR=0.07f;
     public static float LEVEL_HEIGHT_SCALAR=0.1f;
+    public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space before drawing bricks
+
 
     public static final int[][][] testLevels = {
             {

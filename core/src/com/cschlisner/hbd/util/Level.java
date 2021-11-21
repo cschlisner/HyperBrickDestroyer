@@ -68,7 +68,7 @@ public class Level {
         BRKW = brickTex.getWidth() / Const.PPM;
 
         // space from top of bricks to top of world
-        header = WRLDH / 9;
+        header = WRLDH / Const.BRICK_HEADER;
         // space from left of bricks to left of world
         margin = (WRLDW / BRKW);
         margin = (margin - (int)(margin))/2 + BRKW;

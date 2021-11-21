@@ -31,7 +31,6 @@ public class PlayerPaddle extends Actor {
 
     // position data
     float defaultWidth;
-    float width;
     float defaultHeight;
     float defpaddlex;
     float defpaddley;
@@ -59,7 +58,6 @@ public class PlayerPaddle extends Actor {
 
         // position, size
         defaultWidth = (float)frame.getRegionWidth() / Const.PPM;
-        width = defaultWidth;
         defaultHeight = (float)frame.getRegionHeight() / Const.PPM;
         defpaddlex = 0;
         defpaddley = 3;
@@ -83,7 +81,7 @@ public class PlayerPaddle extends Actor {
         bodyDef.position.set(position);
         Body body = screen.game.getWorld().createBody(bodyDef);
         paddleShape = new PolygonShape();
-        paddleShape.setAsBox(width/2, defaultHeight/2);
+        paddleShape.setAsBox(getWidth()/2, defaultHeight/2);
         FixtureDef fDef = new FixtureDef();
         fDef.filter.categoryBits = Const.PADDLE_FLAG;
         fDef.filter.maskBits = Const._COLLISION_MASK;
@@ -135,7 +133,7 @@ public class PlayerPaddle extends Actor {
         super.act(delta);
         // Set position based on body position
         this.position = body.getPosition();
-        setPosition(position.x-width/2, position.y-defaultHeight/2);
+        setPosition(position.x-getWidth()/2, position.y-defaultHeight/2);
     }
 
     public void drawBounds(){
@@ -154,7 +152,7 @@ public class PlayerPaddle extends Actor {
 
         // Get current frame of animation for the current stateTime
         batch.draw(animating?animator.getFrame(stateTime, true):animator.still, getX(),
-                getY(), getOriginX(), getOriginY(), width, defaultHeight, 1f, 1f, getRotation());
+                getY(), getOriginX(), getOriginY(), getWidth(), defaultHeight, 1f, 1f, getRotation());
 
         if (animating) {
             animating = !animator.animations.get(0).isAnimationFinished(stateTime);

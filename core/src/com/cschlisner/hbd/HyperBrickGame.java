@@ -194,7 +194,7 @@ public class HyperBrickGame extends Game {
 
     public void resetCamera(){
         camera.zoom = 1.0f;
-        updateCamera(0, SCRHR);
+        updateCamera(0, camera.viewportHeight/2);
     }
 
     public void translateCamera(float tx, float ty){

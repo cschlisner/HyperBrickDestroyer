@@ -110,8 +110,8 @@ public class Ball extends Actor {
         fixture.setUserData(this);
         ballCircle.dispose();
         body.setBullet(true);
-        body.setLinearDamping(-0.01f);
-        body.setAngularDamping(-0.01f);
+        body.setLinearDamping(-0.02f);
+        body.setAngularDamping(-0.1f);
         return body;
     }
 
@@ -197,9 +197,11 @@ public class Ball extends Actor {
     public void onContact(){
         bounceSound.play();
         this.body.setAwake(true);
-        body.setLinearVelocity(body.getLinearVelocity().nor().scl(speed));
+        Vector2 linVelNorm = body.getLinearVelocity().nor();
+        if (linVelNorm.x==0) linVelNorm.x = rng.nextFloat()*2-1;
+        if (linVelNorm.y==0) linVelNorm.y = rng.nextFloat()*2-1;
+        body.setLinearVelocity(linVelNorm.scl(speed));
         body.setAngularVelocity(body.getAngularVelocity());
-
     }
 
     public void incSpeed(float v) {
