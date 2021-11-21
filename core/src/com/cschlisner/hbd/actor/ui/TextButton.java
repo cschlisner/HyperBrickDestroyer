@@ -1,6 +1,5 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.actor.ui;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Camera;
@@ -8,17 +7,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Event;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.cschlisner.hbd.util.Const;
 
 public class TextButton extends Actor {
-    float textx, texty;
+    float textx;
+    public float texty;
     float marginx, marginy;
 
     BitmapFont font, fontClick;
@@ -33,6 +30,8 @@ public class TextButton extends Actor {
         public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
             clicked = true;
             clickSound.play();
+            font.setColor(Color.WHITE);
+            glyphLayout = new GlyphLayout(font, getName());
             return true;
         }
 
@@ -40,21 +39,22 @@ public class TextButton extends Actor {
         public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
             clicked = false;
             if (onclick != null) onclick.run();
+            font.setColor(Color.RED);
+            glyphLayout = new GlyphLayout(font, getName());
         }
     };
 
-    public TextButton(AssetManager manager, String text, String fontref, int size, float xpos, float ypos){
+    public TextButton(AssetManager manager, String text, String fontref, float xpos, float ypos){
         this.setName(text);
         textx = xpos;
         texty = ypos;
         marginx = marginy = 100;
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal(String.format("font/%s",fontref)));
-        FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        p.size=size;
-        p.color = Color.WHITE;
-        font = generator.generateFont(p);
-        p.color = Color.RED;
-        fontClick = generator.generateFont(p);
+        font = manager.get(fontref, BitmapFont.class);
+        font.setColor(Color.RED);
+
+//        fontClick = new BitmapFont();
+//        fontClick.setColor(Color.RED);
+
         glyphLayout = new GlyphLayout(font, text);
         setBounds(textx-marginx/2,texty- glyphLayout.height-(marginy/2),glyphLayout.width+marginx, glyphLayout.height+marginy);
 
@@ -97,6 +97,6 @@ public class TextButton extends Actor {
             shapeRenderer.end();
             batch.begin();
         }
-        (clicked? fontClick:font).draw(batch, glyphLayout, textx, texty);
+        font.draw(batch, glyphLayout, textx, texty);
     }
 }

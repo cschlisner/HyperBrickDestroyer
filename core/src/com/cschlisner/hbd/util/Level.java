@@ -1,125 +1,91 @@
-package com.cschlisner.hbd;
+package com.cschlisner.hbd.util;
 
-
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.cschlisner.hbd.HyperBrickGame;
+import com.cschlisner.hbd.actor.Brick;
+import com.cschlisner.hbd.actor.Wall;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
-import java.util.Vector;
 
-public class LevelManager {
-    static int[][][] testLevels = {
-            {
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {8,8,8,8,8,8,8,8},
-            },
-            {
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-            },
-            {
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-            },
-            {
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-                    {8,8,8,8,8,8,8,8},
-            },
-            {
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {1,9,1,1,9,1,1,9},
-                {1,1,1,1,1,1,1,1},
-                {1,2,3,4,5,6,7,8},
-            },
-            {
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {1,9,1,1,9,1,1,9},
-                {1,1,1,1,1,1,1,1},
-                {1,9,9,1,1,9,9,1},
-            },
-            {
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
-                {1,8,1,1,8,1,1,8},
-                {1,1,1,1,1,1,1,1},
-                {8,8,8,8,8,8,8,8},
-            },
-    };
-    public GameScreen screen;
-
+/**
+ * Holds data about current level's brick group, walls, dimensions etc
+ */
+public class Level {
+    public HyperBrickGame game;
+    public LevelManager manager;
+    int level_c; // level counter
 
     Random rng = new Random();
 
-    Camera camera;
-    Game game;
-    Group brickGroup;
-    Group spawnedBalls;
+    public Group actorGroup;
+    public Group brickGroup;
+    public Group spawnedBalls;
+    public Group wallGroup;
 
-    int levelBrickCount = 0;
+    public int bricksToClear;
     private int[][] curLevelMap;
-    private Hashtable<Vector2,Brick> brickMap = new Hashtable<>();
+    private Hashtable<Vector2, Brick> brickMap = new Hashtable<>();
 
     /* formatting brick group */
-    float SCRW, SCRH;
-    int BRKW, BRKH;
+    public float WRLDW;
+    public float WRLDH;
+    float WRLDWR, WRLDHR;
+    float BRKW, BRKH;
     float margin, header;
-
     public float DRAW_X, DRAW_Y;
 
-
-    public LevelManager(GameScreen screen){
-        this.screen = screen;
-        this.camera = screen.camera;
+    public Level(LevelManager manager, int level){
+        this.manager = manager;
+        this.game = manager.screen.game;
+        this.level_c = level;
         brickGroup = new Group();
         spawnedBalls = new Group();
-        SCRH = camera.viewportHeight;
-        SCRW = camera.viewportWidth;
+        wallGroup = new Group();
+        actorGroup = new Group();
 
+        float w_scl = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
+        w_scl = (w_scl>0)?w_scl:1;
+        float h_scl = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
+        h_scl = (h_scl>0)?h_scl:1;
 
+        // we will be drawing from lr = (-WRLDW/2,0)
+        WRLDW = game.SCRW * w_scl;
+        WRLDH = game.SCRH * h_scl;
+        WRLDWR = WRLDW*0.5f;
+        WRLDHR = WRLDH*0.5f;
 
-        Brick b = new Brick(this,0,0,1);
-        BRKH = (int)b.getHeight();
-        BRKW = (int)b.getWidth();
+        // sample brick for measurements
+        Texture brickTex = manager.screen.assManager.get(Const.TEXTURES[3], Texture.class);
+        BRKH = brickTex.getHeight() / Const.PPM;
+        BRKW = brickTex.getWidth() / Const.PPM;
 
-        header = SCRH/9;
-        margin = BRKW;
-        DRAW_X = margin;
-        DRAW_Y = SCRH-header;
+        // space from top of bricks to top of world
+        header = WRLDH / 9;
+        // space from left of bricks to left of world
+        margin = (WRLDW / BRKW);
+        margin = (margin - (int)(margin))/2 + BRKW;
+        // drawing coordinates for Brick at (0,0) in brickmap
+        DRAW_X = (-WRLDWR)+margin;
+        DRAW_Y = WRLDH-header;
 
-        createBricks(1);
+        // makes a level and lays out bricks
+        createBricks(level_c);
+
+        // create wall bounds
+        wallGroup.addActor(new Wall(this, -WRLDWR-0.55f, 0, 1, WRLDH)); //L
+        wallGroup.addActor(new Wall(this, WRLDWR-0.55f, 0, 1, WRLDH)); //R
+        wallGroup.addActor(new Wall(this, -WRLDWR, WRLDH-0.55f, WRLDW, 1)); //T
+
+        actorGroup.addActor(wallGroup);
+        actorGroup.addActor(brickGroup);
+        actorGroup.addActor(spawnedBalls);
     }
 
     public int[][] getCurLevelMap(){
@@ -149,23 +115,16 @@ public class LevelManager {
         for (float[] prob : brickTypeDistribution)
             prob[1]/=psum;
 
-        switch (screen.game.getMode()){
+        switch (game.getMode()){
             case ZEN:
                 this.curLevelMap = makeLevel(level, true);
                 break;
             case CHALLENGE:
-                this.curLevelMap = testLevels[level-1];
+                this.curLevelMap = Const.testLevels[level-1];
                 break;
         }
 
-        for (Actor b : brickGroup.getChildren())
-            b.remove();
-        brickGroup.clear();
-        brickMap.clear();
-
-        int col = curLevelMap[0].length;
-
-        levelBrickCount = 0;
+        bricksToClear = 0;
         Brick brick;
         for (int i = 0; i < curLevelMap.length; ++i){
             for (int j=0; j< curLevelMap[0].length; ++j) {
@@ -174,7 +133,7 @@ public class LevelManager {
                     brickGroup.addActor(brick);
                     brickMap.put(new Vector2(j,i), brick);
                     if (brick.type != Brick.BrickType.Immune)
-                        ++levelBrickCount;
+                        ++bricksToClear;
                 }
             }
         }
@@ -206,8 +165,8 @@ public class LevelManager {
     }
 
     public int[][] makeLevel(int level, boolean symmetric){
-        int columns = (int)((SCRW - (2*margin)) / BRKW);
-        int rows = (int)((SCRH - (3*header)) / BRKW);
+        int columns = (int)((WRLDW - (2*margin)) / BRKW);
+        int rows = (int)((WRLDH - (3*header)) / BRKW);
 
         int[][] levelmap = new int[rows][columns];
 
