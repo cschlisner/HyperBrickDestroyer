@@ -126,6 +126,7 @@ public class PlayerPaddle extends Actor {
         body.destroyFixture(fixture);
         fixture = body.createFixture(fDef);
         fixture.setUserData(this);
+        paddleInput.reset();
     }
 
     @Override

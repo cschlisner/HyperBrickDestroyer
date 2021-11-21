@@ -39,7 +39,7 @@ public class Level {
     public float WRLDWR, WRLDHR;
     public float w_SCL, h_SCL;
     float BRKW, BRKH;
-    float margin, header;
+    float margin, header, footer;
     public float DRAW_X, DRAW_Y;
 
     public Level(LevelManager manager, int level){
@@ -69,6 +69,8 @@ public class Level {
 
         // space from top of bricks to top of world
         header = WRLDH / Const.BRICK_HEADER;
+        footer = 2*header;
+
         // space from left of bricks to left of world
         margin = (WRLDW / BRKW);
         margin = (margin - (int)(margin))/2 + BRKW;
@@ -167,6 +169,8 @@ public class Level {
     }
 
     public int[][] makeLevel(int level, boolean symmetric){
+        int brickC = Const.STARTING_BRICKC * (1+ (int)((level-1) * Const.BRICK_SLALAR));
+
         int columns = (int)((WRLDW - (2*margin)) / BRKW);
         int rows = (int)((WRLDH - (3*header)) / BRKW);
 

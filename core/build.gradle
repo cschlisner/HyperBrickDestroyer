@@ -1,6 +1,6 @@
 sourceCompatibility = 1.7
 dependencies {
-    implementation files('build/libs/gdx-freetype-natives.jar')
+    implementation files('libs/gdx-freetype-natives.jar')
 
 }
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
