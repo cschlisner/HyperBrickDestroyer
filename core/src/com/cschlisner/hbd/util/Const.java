@@ -128,6 +128,7 @@ public class Const {
     public static final float BALL_MOVE_MARGINX = VIEW_WIDTHM / BALL_MOVE_MARGIN;
     public static final float BALL_MOVE_MARGINY = VIEW_HEIGHTM / 2;
     public static final float CAMSMOOTH = 0.005f; // value to slow down camera movement
+    public static final int PADDLE_MOVE_MODE = 1;
 
     // text sizes
     public static final int _TEXT_LG = (int)(200.0f * ((float)VIEW_WIDTH/REFDISP_x));

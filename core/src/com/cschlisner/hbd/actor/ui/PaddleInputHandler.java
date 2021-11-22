@@ -34,9 +34,12 @@ public class PaddleInputHandler extends Actor {
 
         @Override
         public void touchDragged(InputEvent event, float x, float y, int pointer) {
-            float xx = getX()+Gdx.input.getDeltaX();
-            float finalx = xx < 0 ? 0 : xx+getWidth()>SCR_W ? SCR_W- getWidth() : xx;
-            setX(finalx);
+            if (Const.PADDLE_MOVE_MODE == 0) {
+                float xx = getX() + Gdx.input.getDeltaX();
+                float finalx = xx < 0 ? 0 : xx + getWidth() > SCR_W ? SCR_W - getWidth() : xx;
+                setX(finalx);
+            }
+            else setX(x-getWidth()/2);
             setY(y-getHeight()/2);
         }
 
