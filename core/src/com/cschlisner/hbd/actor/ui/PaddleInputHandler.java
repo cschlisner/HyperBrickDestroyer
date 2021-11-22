@@ -2,8 +2,11 @@ package com.cschlisner.hbd.actor.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -11,13 +14,21 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.cschlisner.hbd.HyperBrickGame;
+import com.cschlisner.hbd.actor.Ball;
 import com.cschlisner.hbd.actor.PlayerPaddle;
 import com.cschlisner.hbd.util.Const;
 import com.cschlisner.hbd.util.Level;
 
+import org.graalvm.compiler.lir.LIR;
+import org.w3c.dom.Text;
+
 public class PaddleInputHandler extends Actor {
-    InputListener paddleInputListener = new InputListener() {
+
+    boolean drawIP = true;
+    public InputListener paddleInputListener = new InputListener() {
         public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+            drawIP=true;
+            setPosition(x-getWidth()/2,y-getHeight()/2);
             return true;
         }
 
@@ -26,10 +37,12 @@ public class PaddleInputHandler extends Actor {
             float xx = getX()+Gdx.input.getDeltaX();
             float finalx = xx < 0 ? 0 : xx+getWidth()>SCR_W ? SCR_W- getWidth() : xx;
             setX(finalx);
+            setY(y-getHeight()/2);
         }
 
 
         public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+            drawIP=false;
         }
     };
 
@@ -40,12 +53,13 @@ public class PaddleInputHandler extends Actor {
     float SCRWR, SCRHR;
     float OX, OY;
     ShapeRenderer shapeRenderer;
+    Color defColor;
     public PaddleInputHandler(PlayerPaddle paddle){
         this.paddle=paddle;
         this.game = paddle.screen.game;
         this.curLevel = paddle.screen.levelManager.curLevel;
 
-        this.addListener(paddleInputListener);
+//        this.addListener(paddleInputListener);
 
         // drawing to UI screen, using pixel units
         SCR_W = paddle.screen.UIcamera.viewportWidth;
@@ -63,7 +77,9 @@ public class PaddleInputHandler extends Actor {
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         shapeRenderer.setProjectionMatrix(paddle.screen.UIcamera.combined);
-        shapeRenderer.setColor(Color.YELLOW);
+        defColor = getColor();
+        defColor.a = 0.2f;
+        IPCOl = defColor;
     }
 
     // converts world position to screen(viewport) position
@@ -91,7 +107,7 @@ public class PaddleInputHandler extends Actor {
         // updates input paddle size based on screen size of input paddle -- 1:1 scale
         Vector3 pcpos = convertWorldPos(new Vector3(paddle.getX(),paddle.getY(),0));
         Vector3 dims = convertWorldPos(new Vector3(paddle.getX()+ paddle.getWidth(), paddle.getY() + paddle.getHeight(), 0));
-        this.setBounds(pcpos.x, pcpos.y, dims.x-pcpos.x, dims.y-pcpos.y);
+        this.setBounds(pcpos.x, OY+pcpos.y, dims.x-pcpos.x, dims.y-pcpos.y);
 
         // update level (for world size)
         this.curLevel = paddle.screen.levelManager.curLevel;
@@ -164,26 +180,96 @@ public class PaddleInputHandler extends Actor {
         updateWorldPaddle();
 
         relP = getRelPos();
+        relP.y = 0;
         relS = getRelSize();
     }
+
+    float colorDelta=0.0f;
+    float bcolorDelta=0.0f;
+    float colDir = 0.01f;
+    Color relWorldDispCol = new Color(1,0.4f,0.4f, 0.15f);
+    Color relPadCol;
+    float H, S, L, a;
+    public boolean blink = false;
+    public boolean kickoff = blink;
+    float kickoffColDelay = 0.5f; // seconds -- total animation length
+    float kickoffblinkt = 0.05f; // seconds -- how long blinks are
+    float kickoffColDelayt = 0; // seconds -- counter
+    float last_blink=0;
+    Color IPCOl;
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
+        if (kickoff || blink) {
+            kickoffColDelayt += Gdx.graphics.getDeltaTime();
+            if (kickoff) IPCOl = blink ? Color.RED : defColor;
+            if (kickoffColDelayt-last_blink > kickoffblinkt) {
+                blink = !blink;
+                last_blink=kickoffColDelayt;
+            }
+        }
+        if (kickoffColDelayt >= kickoffColDelay) {
+            blink = kickoff = false;
+            kickoffColDelayt=last_blink=0;
+            IPCOl = defColor;
+        }
+
+//        colorDelta += colDir;
+//        if (colorDelta>=0.9f||colorDelta<0.01f)
+//            colDir=-colDir;
+        colorDelta = paddle.getTop() / paddle.screen.ball.position.y;
+
         if (enabled) {
+            // draw input paddle
+            if (drawIP) {
+                batch.setProjectionMatrix(game.textCamera.combined);
+                batch.setColor(IPCOl);
+                TextureRegion frame = paddle.animating ? paddle.animator.getFrame(paddle.stateTime, true) : paddle.animator.still;
+                batch.draw(frame, getX(), getY(), getOriginX(), getOriginY(), getWidth(), getHeight(), 1f, 1f, getRotation());
+            }
             batch.end();
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+            // draw relative paddle
             shapeRenderer.setProjectionMatrix(paddle.screen.UIcamera.combined);
-            shapeRenderer.setColor(Color.YELLOW);
-            shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
-            shapeRenderer.setColor(Color.RED);
-            shapeRenderer.rect(relP.x, relP.y, relS.x, relS.y);
-//            shapeRenderer.setProjectionMatrix(paddle.screen.camera.combined);
-//            shapeRenderer.set(ShapeRenderer.ShapeType.Filled);
-//            shapeRenderer.setColor(Color.RED);
-//            shapeRenderer.circle(ipWpos.x, ipWpos.y, 0.2f, 30);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            H = Interpolation.fastSlow.apply(160.0f, 259.9999f, colorDelta);
+            S = Interpolation.bounceOut.apply(0.2f, 1f, colorDelta);
+            L = Interpolation.circleOut.apply(0.32f, 0.5f, colorDelta);
+            relPadCol = game.HSLtoColor(H, S, L, parentAlpha * 0.3f);
+            shapeRenderer.setColor(relPadCol);
+            shapeRenderer.rect(relP.x, OY, relS.x, relS.y/3);
+
+            // draw ball x position
+            H = Interpolation.fastSlow.apply(100.0f, 0.0f, colorDelta);
+            S = Interpolation.exp10.apply(0.53f, 1f, colorDelta);
+            L = Interpolation.exp10.apply(0.56f, 0.36f, colorDelta);
+            a = Interpolation.exp10.apply(0.9f, 1f, colorDelta);
+            shapeRenderer.setColor(game.HSLtoColor(H,S,L,a));
+            Vector3 ballpos = convertWorldPos(new Vector3(paddle.screen.ball.position.x, 0,0));
+            shapeRenderer.circle(ballpos.x, OY+relS.y/6, relS.y/6);
+
+            // draw relative world width
+            relWorldDispCol = new Color(relWorldDispCol.r, relWorldDispCol.g, relWorldDispCol.b, parentAlpha*relWorldDispCol.a);
+            shapeRenderer.setColor(relWorldDispCol);
+            shapeRenderer.rect(OX, OY, SCR_W, relS.y/3);
+
+            //draw frame around input paddle
+            if (drawIP) {
+                shapeRenderer.set(ShapeRenderer.ShapeType.Line);
+                relPadCol.a = 0.9f * parentAlpha;
+                shapeRenderer.setColor( blink ? Color.RED :relPadCol);
+                shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
+            }
             shapeRenderer.end();
+
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+
             batch.begin();
         }
+
     }
 }

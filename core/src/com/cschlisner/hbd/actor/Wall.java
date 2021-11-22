@@ -58,6 +58,7 @@ public class Wall extends Actor {
     }
 
     public void destroy(){
+        this.level.wallGroup.removeActor(this);
         this.body.getWorld().destroyBody(this.body);
         remove();
     }

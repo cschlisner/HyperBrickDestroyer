@@ -11,6 +11,7 @@ public class Const {
     public static final String _SOUND = "sound/";
     public static final String _TEXTURE = "texture/";
     public static final String _FONT = "font/";
+    public static final String _PART = "particle/";
 
     // sound files
     public static final String[] SOUNDS = {
@@ -46,6 +47,15 @@ public class Const {
             _FONT+"pixel-bit-advanced.ttf",
     };
 
+    // particle files
+    public static final String[] PARTICLES = {
+            _PART+"balltracer.p",
+            _PART+"bounce.p",
+            _PART+"brickbroke.p",
+            _PART+"explosion.p",
+    };
+
+
     public static String soundp(String s){
         return Const._SOUND+s;
     }
@@ -73,6 +83,12 @@ public class Const {
     public static FileHandle fontfh(String t){
         return Gdx.files.internal(texp(t));
     }
+    public static String partp(String t){
+        return Const._PART+t;
+    }
+    public static FileHandle partfh(String t){
+        return Gdx.files.internal(partp(t));
+    }
 
     public static final String _FONT_BIG = FONTS[0];
     public static final String _FONT_MD = FONTS[1];
@@ -89,6 +105,7 @@ public class Const {
             "RESUME",
             "QUIT",
             "PAUSED",
+            "double tap to kickoff"
     };
 
 
@@ -159,7 +176,7 @@ public class Const {
     public static float LEVEL_WIDTH_SCALAR=0.07f; // How much level width increases per level
     public static float LEVEL_HEIGHT_SCALAR=0.1f; // How much level height increases per level
     public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space before drawing bricks
-    public static final int STARTING_BRICKC = 20;
+    public static final int STARTING_BRICKC = 60;
     public static final float BRICK_SLALAR = 0.5f; // How much brick count increases per level
 
 

@@ -70,6 +70,14 @@ public class TitleScreen implements Screen {
                 dispose();
             }
         });
+
+        createBtn.setOnClick(new Runnable() {
+            @Override
+            public void run() {
+                game.setScreen(new CreateScreen(game));
+                dispose();
+            }
+        });
         Gdx.input.setInputProcessor(stage);
 
     }

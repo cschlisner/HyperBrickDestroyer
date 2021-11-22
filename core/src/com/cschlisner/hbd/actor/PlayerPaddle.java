@@ -22,9 +22,9 @@ import com.cschlisner.hbd.screen.GameScreen;
 import com.cschlisner.hbd.util.Const;
 
 public class PlayerPaddle extends Actor {
-    float stateTime;
-    TextureAnimator animator;
-    boolean animating = false;
+    public float stateTime;
+    public TextureAnimator animator;
+    public boolean animating = false;
 
     // Paddle Input (draw on UI) that we update world paddle position from
     public PaddleInputHandler paddleInput;
@@ -113,8 +113,8 @@ public class PlayerPaddle extends Actor {
     @Override
     public void setWidth(float width) {
         paddleShape = new PolygonShape();
-        float x=getX(), y=getY(), h=defaultHeight;
-        setBounds(x, y, width, h);
+        float x=getX(), y=defpaddley, h=defaultHeight;
+        setBounds(x-(width - getWidth())/2, y-h/2, width, h);
         paddleShape.setAsBox(width/2, defaultHeight/2);
         FixtureDef fDef = new FixtureDef();
         fDef.filter.categoryBits = Const.PADDLE_FLAG;
@@ -176,6 +176,7 @@ public class PlayerPaddle extends Actor {
         animating = true;
         animating_s = System.currentTimeMillis();
         stateTime = 0.2f;
+        paddleInput.blink = true;
     }
 
     public void dispose(){

@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -46,7 +47,7 @@ public class GameScreen implements Screen {
 	private Stage gameStage, UIStage;
 	PlayerPaddle paddle;
 	PauseMenu menuOverlay;
-	Ball ball;
+	public Ball ball;
 	public LevelManager levelManager;
 	public InfoBar infoBar;
 
@@ -61,6 +62,7 @@ public class GameScreen implements Screen {
 			stopEngine = false;
 			ball.kickOff();
 			waitingOnKickOff = false;
+			paddle.paddleInput.kickoff = true;
 			paddle.paddleInput.removeListener(this);
 			return true;
 		}
@@ -130,7 +132,9 @@ public class GameScreen implements Screen {
 		UIStage.getBatch().setProjectionMatrix(game.textCamera.combined);
 
 		markerFont = assManager.get(Const.fontr(1,0));
-
+		kickOffFont = assManager.get(Const.fontr(0, 1));
+		kickOffFont.setColor(0.772f, 0.027f, 0.168f, 0.4f);
+		kickOffGlyphLayout = new GlyphLayout(kickOffFont, Const.TEXT[10]);
 		game.debug = false;
 	}
 
@@ -178,6 +182,8 @@ public class GameScreen implements Screen {
 		advanceLevel();
 	}
 
+	BitmapFont kickOffFont;
+	GlyphLayout kickOffGlyphLayout;
     @Override
 	public void render(float delta) {
 		ScreenUtils.clear(Color.BLACK);
@@ -197,6 +203,14 @@ public class GameScreen implements Screen {
 		// Update physics amd cameras
 		if (!this.paused) {
 			update(delta);
+		}
+
+		// draw kickoff text
+		if (waitingOnKickOff){
+			UIStage.getBatch().begin();
+			kickOffFont.draw(UIStage.getBatch(), kickOffGlyphLayout, game.TCMRX-kickOffGlyphLayout.width/2,
+					game.TCMRY-kickOffGlyphLayout.height/2);
+			UIStage.getBatch().end();
 		}
 	}
 	boolean stopEngine;
@@ -232,6 +246,11 @@ public class GameScreen implements Screen {
 	}
 
 	public void advanceLevel(){
+		gameStage.clear();
+		gameStage.dispose();
+		gameStage = new Stage(game.gameVP);
+		gameStage.getBatch().setProjectionMatrix(camera.combined);
+
 		if (infoBar.level > Const.START_LEVEL) {
 
 			// reset ball
@@ -240,14 +259,15 @@ public class GameScreen implements Screen {
 			// get rid of extra balls
 			for (Actor a : gameStage.getActors()) {
 				if (a instanceof Ball && !((Ball) a).isPrimary) {
-					a.remove();
+					((Ball)a).remove();
 				}
 			}
 			// remove all bricks/walls from previous level
 			for (Actor b : levelManager.curLevel.brickGroup.getChildren())
 				((Brick) b).brickBroken();
-			for (Actor w : levelManager.curLevel.wallGroup.getChildren())
+			for (Actor w : levelManager.curLevel.wallGroup.getChildren()) {
 				((Wall) w).destroy();
+			}
 		}
 
 		// NEW LEVEL //
@@ -262,8 +282,8 @@ public class GameScreen implements Screen {
 
 		if (paddle==null) {
 			paddle = new PlayerPaddle(this, levelManager.curLevel);
-			gameStage.addActor(paddle);
 			UIStage.addActor(paddle.paddleInput);
+			UIStage.addListener(paddle.paddleInput.paddleInputListener);
 		}
 		// reset paddle to center
 		paddle.reset(levelManager.curLevel);
@@ -272,10 +292,16 @@ public class GameScreen implements Screen {
 		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
 		waitingOnKickOff = true;
 		infoBar.lives = 3;
+		Gdx.app.postRunnable(new Runnable() {
+			@Override
+			public void run() {
+				gameStage.addActor(ball);
+				gameStage.addActor(paddle);
+				gameStage.addActor(levelManager.curLevel.actorGroup);
+				paddle.paddleInput.addListener(ballKickOffListener);
+			}
+		});
 
-		gameStage.addActor(ball);
-		gameStage.addActor(levelManager.curLevel.actorGroup);
-		paddle.paddleInput.addListener(ballKickOffListener);
 	}
 
 	private void updateCamera(){
@@ -296,23 +322,25 @@ public class GameScreen implements Screen {
 
 
 		// zoom based on primary ball y
-		float zoom = 1.0f; // min zoom
-		float z = levelManager.curLevel.w_SCL * 0.8f; // z = maximum zoom amount.
-		z = z<1?1:z;
-		float H = levelManager.curLevel.WRLDH;
-		float h = 5; // H/h = min height at which we zoom
-//		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
-		float m = (z*h-h)/H;
-//		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
-		float b = zoom-(H*m)/h;
-		float y = ball.position.y;
-
-		if (y >= H/h) {
-//			zoom = (z < zoom ? -m*y+b : m*y+b); // TODO: fix inverse zooming for small levels
-			zoom = m*y+b;
-		}
-		System.out.println("ZOOM: "+zoom+" | "+z);
-		camera.zoom = zoom;
+//		float zoom = 1.0f; // min zoom
+//		float z = (levelManager.curLevel.WRLDW/ game.SCRW) * 0.85f; // z = maximum zoom amount.
+//		z = z<1?1:z;
+//		float H = levelManager.curLevel.WRLDH;
+//		float h = 5; // H/h = min height at which we zoom
+////		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
+//		float m = (z*h-h)/H;
+////		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
+//		float b = zoom-(H*m)/h;
+//		float y = ball.position.y;
+//
+//		if (y >= H/h) {
+////			zoom = (z < zoom ? -m*y+b : m*y+b); // TODO: fix inverse zooming for small levels
+//			zoom = m*y+b;
+//			zoom = zoom < 0? 1 : zoom;
+//		}
+//		System.out.println("ZOOM: "+zoom+" | "+z);
+		float zoomscl = 0.035f;
+		camera.zoom = 1 + (ball.getY()/paddle.getTop())*zoomscl;
 		game.translateCamera(mv_x * (ball.defSpeed * Const.CAMSMOOTH), mv_y);
 	}
 

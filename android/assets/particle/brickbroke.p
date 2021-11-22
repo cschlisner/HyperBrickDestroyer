@@ -10,8 +10,8 @@ max: 904
 - Emission - 
 lowMin: 0.0
 lowMax: 0.0
-highMin: 2000.0
-highMax: 2000.0
+highMin: 1000.0
+highMax: 1000.0
 relative: false
 scalingCount: 1
 scaling0: 1.0
@@ -91,7 +91,16 @@ timelineCount: 2
 timeline0: 0.0
 timeline1: 0.9316888
 - Angle - 
-active: false
+active: true
+lowMin: 0.0
+lowMax: 0.0
+highMin: 38.0
+highMax: 38.0
+relative: false
+scalingCount: 1
+scaling0: 1.0
+timelineCount: 1
+timeline0: 0.0
 - Rotation - 
 active: false
 - Wind - 

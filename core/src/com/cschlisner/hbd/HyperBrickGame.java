@@ -5,6 +5,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.FileHandleResolver;
+import com.badlogic.gdx.assets.loaders.ParticleEffectLoader;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Camera;
@@ -13,6 +14,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGeneratorLoader;
@@ -116,14 +118,22 @@ public class HyperBrickGame extends Game {
         spriteBatch = new SpriteBatch();
 
         // load assets
+        FileHandleResolver resolver = new InternalFileHandleResolver();
         assetManager = new AssetManager();
+
         for (String asset : Const.SOUNDS)
             assetManager.load(asset, Sound.class);
+
         for (String asset : Const.TEXTURES)
             assetManager.load(asset, Texture.class);
 
+        assetManager.setLoader(ParticleEffect.class, new ParticleEffectLoader(resolver));
+        ParticleEffectLoader.ParticleEffectParameter partParams = new ParticleEffectLoader.ParticleEffectParameter();
+        partParams.imagesDir = resolver.resolve(Const._PART);
+        for (String asset : Const.PARTICLES)
+            assetManager.load(asset, ParticleEffect.class);
+
         //fonts
-        FileHandleResolver resolver = new InternalFileHandleResolver();
         assetManager.setLoader(FreeTypeFontGenerator.class, new FreeTypeFontGeneratorLoader(resolver));
         assetManager.setLoader(BitmapFont.class, ".ttf", new FreetypeFontLoader(resolver));
         String assetName;
@@ -226,10 +236,15 @@ public class HyperBrickGame extends Game {
         textCamera.update();
         this.TSCRX = textCamera.position.x - TSCRW/2;
         this.TSCRY = textCamera.position.y - TSCRH/2;
+        this.TCMRX = textCamera.position.x;
+        this.TCMRY = textCamera.position.y;
     }
 
     // for animating Title color (can't use java.awt)
-    public Color HSLtoColor(float h, float s, float l){
+    public Color HSLtoColor(float h, float s, float l) {
+        return HSLtoColor(h,s,l,1);
+    }
+    public Color HSLtoColor(float h, float s, float l, float a){
         float C = (1-Math.abs(2*l-1))*s;
         float X = C * (1-Math.abs(((h/60.0f)%2)-1));
         float m = l-C/2;
@@ -253,7 +268,7 @@ public class HyperBrickGame extends Game {
         for (float v : RGBprime)
             RGB[i] = (RGBprime[i++]+m);
 
-        return new Color(RGB[0],RGB[1],RGB[2],1);
+        return new Color(RGB[0],RGB[1],RGB[2],a);
     }
 
     boolean blinking=true, bw=true;

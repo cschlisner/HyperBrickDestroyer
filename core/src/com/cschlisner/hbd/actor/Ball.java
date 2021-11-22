@@ -77,11 +77,9 @@ public class Ball extends Actor {
 
 
         if (isPrimary) {
-            traceEffect = new ParticleEffect();
-            traceEffect.load(Gdx.files.internal("particle/balltracer.p"), Gdx.files.internal("particle"));
+            traceEffect = level.game.assetManager.get(Const.PARTICLES[0], ParticleEffect.class);
+            bounceEffect = level.game.assetManager.get(Const.PARTICLES[1], ParticleEffect.class);
             traceEffect.getEmitters().first().setPosition(position.x, position.y);
-            bounceEffect = new ParticleEffect();
-            bounceEffect.load(Gdx.files.internal("particle/bounce.p"), Gdx.files.internal("particle"));
         }
         bounceSound = level.game.assetManager.get(Const.SOUNDS[2], Sound.class);
 

@@ -144,11 +144,11 @@ public class Level {
     }
 
     float[][] brickTypeDistribution = {
-            {0,0.4f},
-            {1,0.4f},
+            {0,0.05f},
+            {1,0.8f},
             {2,0.3f},
             {3,0.3f},
-            {4,0.06f},
+            {4,0.02f},
             {5,0.03f},
             {6,0.05f},
             {7,0.03f},
@@ -156,10 +156,21 @@ public class Level {
             {9,0.1f}
     };
 
+    float[][] levelBrickProbDist = brickTypeDistribution;
+
+    public float[][] updateProbabilities(int level){
+        float[][] newProbDist = new float[brickTypeDistribution.length][brickTypeDistribution[0].length];
+        for (int i = 0; i < newProbDist.length; ++i){
+            newProbDist[i][0] = i;
+            newProbDist[i][1] = (i > level ? 0.001f : 0.1f)*(i+1) * levelBrickProbDist[i][1];
+        }
+        return newProbDist;
+    }
+
     private int selectBrick(int level){
         float p = rng.nextFloat();
         float cumulativeProbability = 0.0f;
-        for (float[] brickp : brickTypeDistribution) {
+        for (float[] brickp : levelBrickProbDist) {
             cumulativeProbability += brickp[1];
             if (p <= cumulativeProbability) {
                 return (int)brickp[0];
@@ -169,13 +180,15 @@ public class Level {
     }
 
     public int[][] makeLevel(int level, boolean symmetric){
-        int brickC = Const.STARTING_BRICKC * (1+ (int)((level-1) * Const.BRICK_SLALAR));
+        int brickC = (int)(Const.STARTING_BRICKC * (1.0f+ (((float)level-1) * Const.BRICK_SLALAR)));
+        levelBrickProbDist = updateProbabilities(level);
 
         int columns = (int)((WRLDW - (2*margin)) / BRKW);
         int rows = (int)((WRLDH - (3*header)) / BRKW);
 
         int[][] levelmap = new int[rows][columns];
 
+        brickfillloop:
         for (int i = 0; i < rows; ++i){
             for (int j=0; j< (symmetric?(columns/2):columns); ++j){
                 int brick = selectBrick(level);
@@ -186,6 +199,10 @@ public class Level {
                     levelmap[i][columns - 1 - j] = coinflip?mirrorbrick:brick;
                 }
                 else levelmap[i][j] = brick;
+                if (brick>0)
+                    brickC -= symmetric?2:1;
+                if (brickC==0)
+                    break brickfillloop;
             }
         }
 

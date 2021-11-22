@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -18,6 +19,7 @@ import com.cschlisner.hbd.actor.ui.InfoBar;
 import com.cschlisner.hbd.util.Const;
 import com.cschlisner.hbd.util.Level;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Random;
 
@@ -59,7 +61,8 @@ public class Brick extends Actor {
     TextureRegion brickTexture;
     TextureRegion[][] dmgTextures;
     ParticleEffect breakEffect;
-    ParticleEffect explodeEffect;
+    String effectName;
+    static Hashtable<String, ParticleEffectPool> effectPools = new Hashtable<>();
     Sound breakSound, hitSound, hitImmune, explodeSound;
     float cx;
     float cy;
@@ -99,10 +102,14 @@ public class Brick extends Actor {
         cy = dy + (th/2);
 
         // Effects: break and explode (for tnt)
-        // todo: load effects from asset manager
-        breakEffect = new ParticleEffect();
-        breakEffect.load(Gdx.files.internal(type==BrickType.Explosive?"particle/explosion.p":"particle/brickbroke.p"),
-                Gdx.files.internal("particle"));
+        effectName = type==BrickType.Explosive?Const.PARTICLES[3]:Const.PARTICLES[2];
+        if (!effectPools.containsKey(effectName)) {
+            breakEffect = level.game.assetManager.get(effectName, ParticleEffect.class);
+            effectPools.put(effectName, new ParticleEffectPool(breakEffect, 10, 20));
+        }
+
+        breakEffect = effectPools.get(effectName).obtain();
+
         breakEffect.getEmitters().first().setPosition(cx,cy);
         if (type != BrickType.Explosive) {
             float[] temp = breakEffect.getEmitters().first().getTint().getColors();
@@ -153,6 +160,7 @@ public class Brick extends Actor {
         return dmgTextures[0][len-i];
     }
 
+    boolean stopeffect = false;
     @Override
     public void draw(Batch batch, float parentAlpha) {
         Color color = getColor();
@@ -165,19 +173,23 @@ public class Brick extends Actor {
         if (!broken && health<=0)
             brickBroken();
         if (broken) {
-            breakEffect.update(Gdx.graphics.getDeltaTime());
-            breakEffect.draw(batch);
             if (breakEffect.isComplete()) {
-                breakEffect.reset();
                 if (type != BrickType.Immune) {
                     --level.bricksToClear;
                 }
+                breakEffect.reset();
+                stopeffect = true;
                 remove();
             }
+            if(!stopeffect) {
+                breakEffect.update(Gdx.graphics.getDeltaTime());
+                breakEffect.draw(batch);
+            }
         }
-        else if (health < maxHealth)
+        else if (health < maxHealth) {
             batch.draw(getCurDmgTex(), getX(), getY(), getOriginX(), getOriginY(),
                     getWidth(), getHeight(), 1, 1, getRotation());
+        }
     }
 
     @Override
@@ -207,11 +219,12 @@ public class Brick extends Actor {
         hitSound.play();
         level.manager.incScore();
     }
-    public boolean broken;
+    public volatile boolean broken;
     public void brickBroken(){
         this.broken=true;
         this.body.getWorld().destroyBody(this.body);
-        breakEffect.start();
+        if (breakEffect.isComplete())
+            breakEffect.start();
         breakSound.play();
         switch (type){
             case BallSpawn:
@@ -268,8 +281,13 @@ public class Brick extends Actor {
         return gameBall;
     }
 
+    @Override
+    public boolean remove() {
+        effectPools.get(effectName).free((ParticleEffectPool.PooledEffect) breakEffect);
+        return super.remove();
+    }
+
     public void disposeAssests(){
         if (breakEffect!=null) breakEffect.dispose();
-        if (explodeEffect!=null) explodeEffect.dispose();
     }
 }
