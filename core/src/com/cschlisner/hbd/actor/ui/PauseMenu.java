@@ -19,7 +19,7 @@ import com.cschlisner.hbd.util.Const;
 public class PauseMenu extends Actor {
     private final float SCRH, SCRW, OX, OY, ptextW, ptextH;
     private GameViewCtx screen;
-    public TextButton quitBtn, settingsBtn;
+    public TextButton quitBtn, settingsBtn, ffBtn;
     public Group menuGroup = new Group();
     BitmapFont font;
 
@@ -40,10 +40,11 @@ public class PauseMenu extends Actor {
 
         quitBtn = new TextButton(game.assetManager, Const.TEXT[8],Const.fontr(2, 1),getX()+(getWidth())/4.0f, getY()+(h/3.0f));
         settingsBtn = new TextButton(game.assetManager, Const.TEXT[5],Const.fontr(2, 0), getX()+(getWidth()/2.0f), getY()+(h/3.0f));
-
+        ffBtn = new TextButton(game.assetManager, Const.TEXT[11], Const.fontr(2,0),getRight()-(getWidth()/6.0f), getY()+(h/3.0f) );
         menuGroup.addActor(this);
         menuGroup.addActor(quitBtn);
         menuGroup.addActor(settingsBtn);
+        menuGroup.addActor(ffBtn);
 
         // shape to draw buttons on
         shapeRend.setAutoShapeType(true);

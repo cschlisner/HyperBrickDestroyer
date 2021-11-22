@@ -105,7 +105,8 @@ public class Const {
             "RESUME",
             "QUIT",
             "PAUSED",
-            "double tap to kickoff"
+            "double tap to kickoff",
+            ">>"
     };
 
 
@@ -174,8 +175,8 @@ public class Const {
     
     /* Level information*/
     public static final int START_LEVEL = 0;
-    public static float LEVEL_WIDTH_SCALAR=0.07f; // How much level width increases per level
-    public static float LEVEL_HEIGHT_SCALAR=0.1f; // How much level height increases per level
+    public static float LEVEL_WIDTH_SCALAR=0.1f; // How much level width increases per level
+    public static float LEVEL_HEIGHT_SCALAR=0.15f; // How much level height increases per level
     public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space before drawing bricks
     public static final int STARTING_BRICKC = 60;
     public static final float BRICK_SLALAR = 0.5f; // How much brick count increases per level

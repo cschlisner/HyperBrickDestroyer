@@ -52,9 +52,9 @@ public class Level {
         actorGroup = new Group();
 
         w_SCL = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
-        w_SCL = 1 + (w_SCL>0? w_SCL :0);
+        w_SCL = 0.5f + (w_SCL>0? w_SCL :0);
         h_SCL = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
-        h_SCL = 1 + (h_SCL>0? h_SCL :0);
+        h_SCL = 0.5f + (h_SCL>0? h_SCL :0);
 
         // we will be drawing from lr = (-WRLDW/2,0)
         WRLDW = game.SCRW * w_SCL;

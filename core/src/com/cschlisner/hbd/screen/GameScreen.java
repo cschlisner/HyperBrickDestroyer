@@ -176,6 +176,13 @@ public class GameScreen implements Screen,GameViewCtx {
 				game.setScreen(new TitleScreen(game));
 			}
 		});
+		menuOverlay.ffBtn.setOnClick(new Runnable() {
+			@Override
+			public void run() {
+				stopEngine=true;
+				advanceLevel();
+			}
+		});
 
 
 		advanceLevel();
