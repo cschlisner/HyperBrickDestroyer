@@ -35,7 +35,7 @@ import com.cschlisner.hbd.actor.Ball;
 import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.util.Const;
 
-public class GameScreen implements Screen {
+public class GameScreen implements Screen,GameViewCtx {
 	public final HyperBrickGame game;
 	public AssetManager assManager;
 
@@ -159,7 +159,6 @@ public class GameScreen implements Screen {
 		menuOverlay = new PauseMenu(this);
 
 
-		// Game Actors (Box2D bodies)
 		levelManager = new LevelManager(this);
 
 		infoBar.pauseBtn.setOnClick(new Runnable() {
@@ -405,5 +404,25 @@ public class GameScreen implements Screen {
 			game.getWorld().destroyBody(body);
 		gameStage.dispose();
 		UIStage.dispose();
+	}
+
+	@Override
+	public Camera getCamera() {
+		return camera;
+	}
+
+	@Override
+	public Camera getUICamera() {
+		return UIcamera;
+	}
+
+	@Override
+	public HyperBrickGame getGame() {
+		return game;
+	}
+
+	@Override
+	public AssetManager getAssManager() {
+		return assManager;
 	}
 }

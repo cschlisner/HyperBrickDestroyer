@@ -196,8 +196,8 @@ public class Ball extends Actor {
         bounceSound.play();
         this.body.setAwake(true);
         Vector2 linVelNorm = body.getLinearVelocity().nor();
-        if (linVelNorm.x==0) linVelNorm.x = rng.nextFloat()*2-1;
-        if (linVelNorm.y==0) linVelNorm.y = rng.nextFloat()*2-1;
+        if (linVelNorm.x==0) linVelNorm.x = rng.nextFloat()*4-2;
+        if (linVelNorm.y==0) linVelNorm.y = rng.nextFloat()*4-2;
         body.setLinearVelocity(linVelNorm.scl(speed));
         body.setAngularVelocity(body.getAngularVelocity());
     }

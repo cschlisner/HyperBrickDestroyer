@@ -44,7 +44,7 @@ public class Level {
 
     public Level(LevelManager manager, int level){
         this.manager = manager;
-        this.game = manager.screen.game;
+        this.game = manager.screen.getGame();
         this.level_c = level;
         brickGroup = new Group();
         spawnedBalls = new Group();
@@ -63,7 +63,7 @@ public class Level {
         WRLDHR = WRLDH*0.5f;
 
         // sample brick for measurements
-        Texture brickTex = manager.screen.assManager.get(Const.TEXTURES[3], Texture.class);
+        Texture brickTex = manager.screen.getAssManager().get(Const.TEXTURES[3], Texture.class);
         BRKH = brickTex.getHeight() / Const.PPM;
         BRKW = brickTex.getWidth() / Const.PPM;
 
@@ -126,6 +126,8 @@ public class Level {
             case CHALLENGE:
                 this.curLevelMap = Const.testLevels[level-1];
                 break;
+            case CREATE:
+                this.curLevelMap = new int[][]{{1,2,3,4,5,6,7,8,9}};
         }
 
         bricksToClear = 0;

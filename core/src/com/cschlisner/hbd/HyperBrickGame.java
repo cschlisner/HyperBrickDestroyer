@@ -62,7 +62,7 @@ public class HyperBrickGame extends Game {
 
     // curent game mode
     public enum GameMode {
-        ZEN, CHALLENGE
+        ZEN, CHALLENGE, CREATE
     }
     private GameMode mode;
 

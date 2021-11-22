@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.screen.GameScreen;
+import com.cschlisner.hbd.screen.GameViewCtx;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -19,11 +20,11 @@ import java.util.List;
 import java.util.Random;
 
 public class LevelManager {
-    GameScreen screen;
+    GameViewCtx screen;
     public int level_c;
     public Level curLevel;
 
-    public LevelManager(GameScreen screen){
+    public LevelManager(GameViewCtx screen){
         this.screen = screen;
     }
 
@@ -32,6 +33,7 @@ public class LevelManager {
     }
 
     public void incScore() {
-        screen.infoBar.score += 10;
+        if (screen instanceof GameScreen)
+            ((GameScreen)screen).infoBar.score += 10;
     }
 }

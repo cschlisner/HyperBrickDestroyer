@@ -74,6 +74,7 @@ public class TitleScreen implements Screen {
         createBtn.setOnClick(new Runnable() {
             @Override
             public void run() {
+                game.setMode(HyperBrickGame.GameMode.CREATE);
                 game.setScreen(new CreateScreen(game));
                 dispose();
             }
