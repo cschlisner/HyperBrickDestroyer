@@ -2,6 +2,7 @@ package com.cschlisner.hbd.screen;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
@@ -17,23 +18,32 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.SnapshotArray;
 import com.cschlisner.hbd.HyperBrickGame;
 import com.cschlisner.hbd.actor.Wall;
 import com.cschlisner.hbd.actor.ui.InfoBar;
 import com.cschlisner.hbd.actor.ui.PaddleInputHandler;
+import com.cschlisner.hbd.util.BodyGroup;
 import com.cschlisner.hbd.util.LevelManager;
 import com.cschlisner.hbd.actor.ui.PauseMenu;
 import com.cschlisner.hbd.actor.PlayerPaddle;
 import com.cschlisner.hbd.actor.Ball;
 import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.util.Const;
+
+import org.graalvm.compiler.asm.sparc.SPARCAssembler;
+
+import java.util.ArrayList;
+import java.util.Random;
 
 public class GameScreen implements Screen,GameViewCtx {
 	public final HyperBrickGame game;
@@ -42,6 +52,8 @@ public class GameScreen implements Screen,GameViewCtx {
 	// Camera
 	public OrthographicCamera camera;
 	public OrthographicCamera UIcamera;
+
+	Random rng = new Random();
 
 	// Scene2D
 	private Stage gameStage, UIStage;
@@ -55,6 +67,9 @@ public class GameScreen implements Screen,GameViewCtx {
 
 	private boolean waitingOnKickOff = true;
 	private boolean paused = false;
+
+	// Box2D
+	final World world;
 
 	private InputListener ballKickOffListener = new InputListener(){
 		@Override
@@ -123,6 +138,8 @@ public class GameScreen implements Screen,GameViewCtx {
 		this.assManager = game.assetManager;
 		this.camera = game.camera;
 		this.UIcamera = game.textCamera;
+		this.world = game.getWorld();
+		this.levelManager = new LevelManager(this);
 
 		// Scene2d things
 		gameStage = new Stage(game.gameVP);
@@ -133,9 +150,10 @@ public class GameScreen implements Screen,GameViewCtx {
 
 		markerFont = assManager.get(Const.fontr(1,0));
 		kickOffFont = assManager.get(Const.fontr(0, 1));
-		kickOffFont.setColor(0.772f, 0.027f, 0.168f, 0.4f);
+		kickOffFont.setColor(1f, 0.9f, 0.9f, 0.5f);
 		kickOffGlyphLayout = new GlyphLayout(kickOffFont, Const.TEXT[10]);
 		game.debug = false;
+
 	}
 
 	@Override
@@ -158,8 +176,6 @@ public class GameScreen implements Screen,GameViewCtx {
 		UIStage.addActor(infoBar.pauseBtn);
 		menuOverlay = new PauseMenu(this);
 
-
-		levelManager = new LevelManager(this);
 
 		infoBar.pauseBtn.setOnClick(new Runnable() {
 			@Override
@@ -195,119 +211,124 @@ public class GameScreen implements Screen,GameViewCtx {
 		ScreenUtils.clear(Color.BLACK);
 		game.updateCamera();
 
-		// Draw our stages
-		gameStage.draw();
-		UIStage.draw();
-
-		// Draw debugging info
-		if (game.debug) {
-			game.debugRenderer.render(game.getWorld(), camera.combined);
-			for (Actor a : gameStage.getActors())
-				markActor(UIStage.getBatch(), a, Color.MAGENTA);
+		synchronized (world) {
+			// Draw our stages
+			gameStage.draw();
+			UIStage.draw();
+			// draw kickoff text
+			if (waitingOnKickOff){
+				UIStage.getBatch().begin();
+				kickOffFont.draw(UIStage.getBatch(), kickOffGlyphLayout, game.TCMRX-kickOffGlyphLayout.width/2,
+						game.TCMRY-kickOffGlyphLayout.height/2);
+				UIStage.getBatch().end();
+			}
+			// Draw debugging info
+			if (game.debug) {
+				game.debugRenderer.render(world, camera.combined);
+				for (Actor a : gameStage.getActors()) {
+					if (a instanceof Group) markGroup(UIStage.getBatch(), a, Color.CYAN);
+					else markActor(UIStage.getBatch(), a, Color.YELLOW);
+				}
+			}
 		}
+
 
 		// Update physics amd cameras
 		if (!this.paused) {
 			update(delta);
 		}
 
-		// draw kickoff text
-		if (waitingOnKickOff){
-			UIStage.getBatch().begin();
-			kickOffFont.draw(UIStage.getBatch(), kickOffGlyphLayout, game.TCMRX-kickOffGlyphLayout.width/2,
-					game.TCMRY-kickOffGlyphLayout.height/2);
-			UIStage.getBatch().end();
-		}
 	}
 	boolean stopEngine;
+    final GameScreen ref = this;
 	public void update(float delta){
-		if (!stopEngine){
-			// update box2d physics
-			game.getWorld().step(1/ Const.FRAMERATE, 6,2);
-		}
-
 		// update actors in scene2d scene
-		gameStage.act(delta);
-		UIStage.act(delta);
+		synchronized (world) {
+			gameStage.act(delta);
+			UIStage.act(delta);
+		}
 
 		// check game conditions
-		if (ball.isDead && !waitingOnKickOff) {
-			--infoBar.lives;
-			waitingOnKickOff = true;
-			paddle.paddleInput.addListener(ballKickOffListener);
-			game.resetCamera();
-			paddle.reset(this.levelManager.curLevel);
-		}
-		if (infoBar.lives == 0){
-			dispose();
-			game.setScreen(new TitleScreen(game));
-			game.resetCamera();
-		}
-		if (levelManager.curLevel.bricksToClear <= 0) {
-			stopEngine = true;
-			advanceLevel();
-		}
+		if (levelManager.levelInitialized) {
+			if (ball.isDead && !waitingOnKickOff) {
+				--infoBar.lives;
+				waitingOnKickOff = true;
+				paddle.paddleInput.addListener(ballKickOffListener);
+				game.resetCamera();
+				paddle.reset(this.levelManager.curLevel);
+			}
+			if (infoBar.lives == 0) {
+				dispose();
+				game.setScreen(new TitleScreen(game));
+				game.resetCamera();
+			}
+			if (levelManager.curLevel.bricksToClear <= 0) {
+				stopEngine = true;
+				advanceLevel();
+			}
 
-		updateCamera();
-	}
-
-	public void advanceLevel(){
-		gameStage.clear();
-		gameStage.dispose();
-		gameStage = new Stage(game.gameVP);
-		gameStage.getBatch().setProjectionMatrix(camera.combined);
-
-		if (infoBar.level > Const.START_LEVEL) {
-
-			// reset ball
-			ball.remove();
-
-			// get rid of extra balls
-			for (Actor a : gameStage.getActors()) {
-				if (a instanceof Ball && !((Ball) a).isPrimary) {
-					((Ball)a).remove();
+			updateCamera();
+			if (!stopEngine){
+				synchronized (world) {
+					// update box2d physics
+					world.step(1 / Const.FRAMERATE, 6, 2);
 				}
 			}
-			// remove all bricks/walls from previous level
-			for (Actor b : levelManager.curLevel.brickGroup.getChildren())
-				((Brick) b).brickBroken();
-			for (Actor w : levelManager.curLevel.wallGroup.getChildren()) {
-				((Wall) w).destroy();
+		}
+	}
+	public void advanceLevel(){
+		levelManager.levelInitialized = false;
+		synchronized (world) {
+			if (infoBar.level > Const.START_LEVEL) {
+				try {
+					levelManager.curLevel.walls.remove();
+					levelManager.curLevel.bricks.remove(infoBar.level > 3);
+					levelManager.curLevel.balls.remove();
+					if (levelManager.lastLevel != null)
+						levelManager.lastLevel.actorGroup.remove();
+				}
+				catch (Exception e){
+					System.out.println(e);
+					System.out.println(gameStage.getActors());
+					Array<Body> bodies = new Array<>();
+					world.getBodies(bodies);
+					System.out.println(bodies);
+					gameStage.clear();
+					gameStage.addActor(ball);
+					gameStage.addActor(paddle);
+				}
 			}
 		}
 
 		// NEW LEVEL //
 		++infoBar.level;
-		if (game.getMode()== HyperBrickGame.GameMode.CHALLENGE && infoBar.level == Const.testLevels.length){
+		if (game.getMode() == HyperBrickGame.GameMode.CHALLENGE && infoBar.level == Const.testLevels.length) {
 			dispose();
 			game.setScreen(new TitleScreen(game));
 			return;
 		}
 		levelManager.newLevel(infoBar.level);
-		game.resetCamera();
 
-		if (paddle==null) {
+		if (infoBar.level == Const.START_LEVEL+1){
+			ball = new Ball(levelManager.curLevel, true);
 			paddle = new PlayerPaddle(this, levelManager.curLevel);
+			gameStage.addActor(ball);
+			gameStage.addActor(paddle);
 			UIStage.addActor(paddle.paddleInput);
 			UIStage.addListener(paddle.paddleInput.paddleInputListener);
 		}
-		// reset paddle to center
-		paddle.reset(levelManager.curLevel);
 
-		ball = new Ball(levelManager.curLevel, true);
-		ball.defSpeed *= 1+((float)infoBar.level/100.0f);
+		game.resetCamera();
+		paddle.reset(levelManager.curLevel);
+		ball.handleDeath();
+
+		ball.defSpeed *= 1 + ((float) infoBar.level * Const.BALL_SPEED_SCALAR);
 		waitingOnKickOff = true;
 		infoBar.lives = 3;
-		Gdx.app.postRunnable(new Runnable() {
-			@Override
-			public void run() {
-				gameStage.addActor(ball);
-				gameStage.addActor(paddle);
-				gameStage.addActor(levelManager.curLevel.actorGroup);
-				paddle.paddleInput.addListener(ballKickOffListener);
-			}
-		});
 
+		gameStage.addActor(levelManager.curLevel.actorGroup);
+		paddle.paddleInput.addListener(ballKickOffListener);
+		this.levelManager.levelInitialized = true;
 	}
 
 	private void updateCamera(){
@@ -352,10 +373,22 @@ public class GameScreen implements Screen,GameViewCtx {
 
 	ShapeRenderer shapeRend = new ShapeRenderer();
 	BitmapFont markerFont;
+	public void markGroup(Batch batch, Actor a, Color color){
+		if (a instanceof BodyGroup){
+			SnapshotArray<Actor> ssa = ((BodyGroup) a).getChildren();
+			Actor[] ch = ssa.begin();
+			for (Actor aa : ch)
+				markGroup(batch, aa, new Color(color.b+0.1f, color.r+0.1f, color.g+0.1f, 1));
+			ssa.end();
+		}
+		else markActor(batch, a, color);
+	}
 
 	public void markActor(Batch batch, Actor a, Color color){
+		if (a==null) return;
+		Actor mkA = (a instanceof Group  && ((Group)a).hasChildren()? ((Group)a).getChild(0):a);
 		Vector3 actorPos = camera.project(new Vector3(a.getX(), a.getY(), a.getZIndex()));
-		String str = a.getName();
+		String str = (a instanceof Group ? ((Group)a).toString() : mkA.getName());
 		shapeRend.setColor(color);
 		shapeRend.setProjectionMatrix(UIcamera.combined);
 		shapeRend.begin(ShapeRenderer.ShapeType.Filled);
@@ -364,8 +397,8 @@ public class GameScreen implements Screen,GameViewCtx {
 		batch.begin();
 		batch.setColor(color);
 		markerFont.setColor(color);
-		markerFont.draw(batch, String.format("%s(%d,%d)",str,(int)actorPos.x,(int)actorPos.y), actorPos.x-50, actorPos.y-50);
-		markerFont.draw(batch, String.format("%s(%d,%d)",str,(int)a.getX(), (int)a.getY()), actorPos.x-50, actorPos.y-100);
+//		markerFont.draw(batch, String.format("%s(%d,%d)",str,(int)actorPos.x,(int)actorPos.y), actorPos.x-50, actorPos.y-50);
+		markerFont.draw(batch, String.format("%s(%d,%d)",str,(int)a.getX(), (int)a.getY()), actorPos.x-50, actorPos.y-20);
 		batch.end();
 	}
 
@@ -406,9 +439,9 @@ public class GameScreen implements Screen,GameViewCtx {
 	@Override
 	public void dispose () {
 		Array<Body> bodies = new Array<>();
-		game.getWorld().getBodies(bodies);
+		world.getBodies(bodies);
 		for (Body body : bodies)
-			game.getWorld().destroyBody(body);
+			world.destroyBody(body);
 		gameStage.dispose();
 		UIStage.dispose();
 	}

@@ -190,7 +190,7 @@ public class PaddleInputHandler extends Actor {
     float colorDelta=0.0f;
     float bcolorDelta=0.0f;
     float colDir = 0.01f;
-    Color relWorldDispCol = new Color(1,0.4f,0.4f, 0.15f);
+    Color relWorldDispCol = new Color(1,0.0f,0.0f, 0.4f);
     Color relPadCol;
     float H, S, L, a;
     public boolean blink = false;
@@ -236,15 +236,20 @@ public class PaddleInputHandler extends Actor {
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-            // draw relative paddle
+            // draw relative world width
             shapeRenderer.setProjectionMatrix(paddle.screen.UIcamera.combined);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            relWorldDispCol = new Color(relWorldDispCol.r, relWorldDispCol.g, relWorldDispCol.b, parentAlpha*relWorldDispCol.a);
+            shapeRenderer.setColor(relWorldDispCol);
+            shapeRenderer.rect(game.TSCRX, game.TSCRY, SCR_W, relS.y/3);
+
+            // draw relative paddle
             H = Interpolation.fastSlow.apply(160.0f, 259.9999f, colorDelta);
             S = Interpolation.bounceOut.apply(0.2f, 1f, colorDelta);
             L = Interpolation.circleOut.apply(0.32f, 0.5f, colorDelta);
-            relPadCol = game.HSLtoColor(H, S, L, parentAlpha * 0.3f);
+            relPadCol = game.HSLtoColor(H, S, L, parentAlpha * 0.4f);
             shapeRenderer.setColor(relPadCol);
-            shapeRenderer.rect(relP.x, OY, relS.x, relS.y/3);
+            shapeRenderer.rect(relP.x,  game.TSCRY, relS.x, relS.y/3);
 
             // draw ball x position
             H = Interpolation.fastSlow.apply(100.0f, 0.0f, colorDelta);
@@ -253,12 +258,8 @@ public class PaddleInputHandler extends Actor {
             a = Interpolation.exp10.apply(0.9f, 1f, colorDelta);
             shapeRenderer.setColor(game.HSLtoColor(H,S,L,a));
             Vector3 ballpos = convertWorldPos(new Vector3(paddle.screen.ball.position.x, 0,0));
-            shapeRenderer.circle(ballpos.x, OY+relS.y/6, relS.y/6);
+            shapeRenderer.circle(ballpos.x,  game.TSCRY+relS.y/6, relS.y/6);
 
-            // draw relative world width
-            relWorldDispCol = new Color(relWorldDispCol.r, relWorldDispCol.g, relWorldDispCol.b, parentAlpha*relWorldDispCol.a);
-            shapeRenderer.setColor(relWorldDispCol);
-            shapeRenderer.rect(OX, OY, SCR_W, relS.y/3);
 
             //draw frame around input paddle
             if (drawIP) {

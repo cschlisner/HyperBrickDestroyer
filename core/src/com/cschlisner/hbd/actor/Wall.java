@@ -17,6 +17,7 @@ public class Wall extends Actor {
     public Body body;
 
     public Wall(Level level, float x, float y, float w, float h){
+        setName("Wall");
         setBounds(x, y, w, h);
 
         BodyDef bodyDef = new BodyDef();
@@ -55,11 +56,14 @@ public class Wall extends Actor {
         shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
         shapeRenderer.end();
         batch.begin();
+
     }
 
-    public void destroy(){
-        this.body.getWorld().destroyBody(this.body);
-        this.level.wallGroup.removeActor(this);
-        remove();
+    @Override
+    public boolean remove() {
+        // remove from world
+        level.game.getWorld().destroyBody(this.body);
+        // remove from stage
+        return super.remove();
     }
 }

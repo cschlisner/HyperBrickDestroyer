@@ -47,6 +47,7 @@ public class InfoBar extends Actor {
 
     @Override
     public void act(float delta) {
+        setBounds(screen.game.TSCRX, scrh-getHeight(), getWidth(), getHeight());
         super.act(delta);
     }
 

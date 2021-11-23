@@ -75,6 +75,8 @@ public class Ball extends Actor {
         velocity = new Vector2(0, -1);
         r = getWidth()/2;
 
+        defSpeed *= 1 + ((float) level.level_c / 100.0f);
+
 
         if (isPrimary) {
             traceEffect = level.game.assetManager.get(Const.PARTICLES[0], ParticleEffect.class);
@@ -120,11 +122,6 @@ public class Ball extends Actor {
         position = new Vector2(defPosition);
         level.game.getWorld().destroyBody(this.body);
         this.body=createBody(position);
-    }
-
-    public void dispose(){
-        bounceEffect.dispose();
-        traceEffect.dispose();
     }
 
     public void handleDeath(){
@@ -176,6 +173,7 @@ public class Ball extends Actor {
         Vector2 loc=body.getPosition();
         batch.draw(tex, getX(), getY(), getOriginX(), getOriginY(),
                 getWidth(), getHeight(), 1, 1, getRotation());
+
     }
 
     public void kickOff() {
@@ -184,12 +182,6 @@ public class Ball extends Actor {
     public void kickOff(float dir) {
         this.isDead = false;
         this.body.setLinearVelocity(new Vector2(rng.nextFloat()*0.1f-0.05f, dir).scl(speed));
-    }
-
-    @Override
-    public boolean remove() {
-        level.game.getWorld().destroyBody(body);
-        return super.remove();
     }
 
     public void onContact(){
@@ -205,5 +197,13 @@ public class Ball extends Actor {
     public void incSpeed(float v) {
         speed *= v;
         body.setLinearVelocity(body.getLinearVelocity().nor().scl(speed));
+    }
+
+    @Override
+    public boolean remove() {
+        // remove from world
+        level.game.getWorld().destroyBody(this.body);
+        // remove from stage
+        return super.remove();
     }
 }

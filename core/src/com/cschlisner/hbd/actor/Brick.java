@@ -54,13 +54,13 @@ public class Brick extends Actor {
     Level level;
     public BrickType type;
     float maxHealth;
-    float health;
+    public float health;
     int mapx,mapy;
 
     // Scene2D
     TextureRegion brickTexture;
     TextureRegion[][] dmgTextures;
-    ParticleEffect breakEffect;
+    public ParticleEffect breakEffect;
     String effectName;
     static Hashtable<String, ParticleEffectPool> effectPools = new Hashtable<>();
     Sound breakSound, hitSound, hitImmune, explodeSound;
@@ -70,7 +70,7 @@ public class Brick extends Actor {
     // Box2d stuff
     Vector2 position;
     BodyDef bodyDef;
-    Body body;
+    public Body body;
     Fixture fixture;
     PolygonShape brickShape;
     float movementSpeed = 0.01f;
@@ -79,6 +79,7 @@ public class Brick extends Actor {
         x,y = coordinates in LevelManager's brick table
      */
     public Brick(Level level, int x, int y, int typeInd){
+        this.setName("Brick"+typeInd);
         this.level = level;
         this.type = BrickType.values()[typeInd-1];
         setColor(brickColors.get(type));
@@ -167,11 +168,10 @@ public class Brick extends Actor {
         batch.setColor(color.r, color.g, color.b, color.a * parentAlpha);
         batch.setProjectionMatrix(getStage().getCamera().combined);
 
-        if (health > 0)
-            batch.draw(brickTexture, getX(), getY(), getOriginX(), getOriginY(),
-                getWidth(), getHeight(), 1, 1, getRotation());
-        if (!broken && health<=0)
+
+        if (!broken && health <= 0) {
             brickBroken();
+        }
         if (broken) {
             if (breakEffect.isComplete()) {
                 if (type != BrickType.Immune) {
@@ -181,15 +181,20 @@ public class Brick extends Actor {
                 stopeffect = true;
                 remove();
             }
-            if(!stopeffect) {
+            if (!stopeffect) {
                 breakEffect.update(Gdx.graphics.getDeltaTime());
                 breakEffect.draw(batch);
             }
         }
-        else if (health < maxHealth) {
-            batch.draw(getCurDmgTex(), getX(), getY(), getOriginX(), getOriginY(),
+        else if (health > 0){
+            batch.draw(brickTexture, getX(), getY(), getOriginX(), getOriginY(),
                     getWidth(), getHeight(), 1, 1, getRotation());
+            if (health < maxHealth) {
+                batch.draw(getCurDmgTex(), getX(), getY(), getOriginX(), getOriginY(),
+                        getWidth(), getHeight(), 1, 1, getRotation());
+            }
         }
+
     }
 
     @Override
@@ -221,8 +226,9 @@ public class Brick extends Actor {
     }
     public volatile boolean broken;
     public void brickBroken(){
+        // remove from world
+        level.game.getWorld().destroyBody(this.body);
         this.broken=true;
-        this.body.getWorld().destroyBody(this.body);
         if (breakEffect.isComplete())
             breakEffect.start();
         breakSound.play();
@@ -232,10 +238,10 @@ public class Brick extends Actor {
                 for (Ball b : balls) {
                     b = new Ball(level, false);
                     b.body.setTransform(new Vector2(cx+rng.nextFloat()*4-4,cy),0);
-                    level.spawnedBalls.addActor(b);
-                    b.kickOff(1);
+                    level.balls.addActor(b);
+                    b.kickOff(2);
                 }
-                getStage().addActor(level.spawnedBalls);
+                getStage().addActor(level.balls);
                 break;
             case PaddleSmall:
                 getPaddle().setWidth(getPaddle().getWidth()/1.5f);
@@ -284,6 +290,7 @@ public class Brick extends Actor {
     @Override
     public boolean remove() {
         effectPools.get(effectName).free((ParticleEffectPool.PooledEffect) breakEffect);
+        // remove from stage
         return super.remove();
     }
 

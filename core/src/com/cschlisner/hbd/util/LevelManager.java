@@ -22,13 +22,16 @@ import java.util.Random;
 public class LevelManager {
     GameViewCtx screen;
     public int level_c;
-    public Level curLevel;
+    public Level curLevel, lastLevel;
+    public ArrayList<Body> garbage = new ArrayList<>();
+    public boolean levelInitialized = false;
 
     public LevelManager(GameViewCtx screen){
         this.screen = screen;
     }
 
     public void newLevel(int level_index){
+        lastLevel = curLevel;
         curLevel = new Level(this, level_index);
     }
 

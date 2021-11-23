@@ -43,7 +43,7 @@ public class Const {
     // font files
     public static final String[] FONTS = {
             _FONT+"doomed.ttf",
-            _FONT+"IsWasted.ttf",
+            _FONT+"acknowtt.ttf",
             _FONT+"pixel-bit-advanced.ttf",
     };
 
@@ -174,12 +174,13 @@ public class Const {
     /* Color information */
     
     /* Level information*/
+    public static final float BALL_SPEED_SCALAR = 0.005f;
     public static final int START_LEVEL = 0;
-    public static float LEVEL_WIDTH_SCALAR=0.1f; // How much level width increases per level
-    public static float LEVEL_HEIGHT_SCALAR=0.15f; // How much level height increases per level
+    public static float LEVEL_WIDTH_SCALAR=0.07f; // How much level width increases per level
+    public static float LEVEL_HEIGHT_SCALAR=0.07f; // How much level height increases per level
     public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space before drawing bricks
-    public static final int STARTING_BRICKC = 60;
-    public static final float BRICK_SLALAR = 0.5f; // How much brick count increases per level
+    public static final int STARTING_BRICKC = 100;
+    public static final float BRICK_SLALAR = 2.0f; // How much brick count increases per level
 
 
 

@@ -3,9 +3,11 @@ package com.cschlisner.hbd.util;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.cschlisner.hbd.HyperBrickGame;
+import com.cschlisner.hbd.actor.Ball;
 import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.actor.Wall;
 
@@ -24,10 +26,11 @@ public class Level {
 
     Random rng = new Random();
 
-    public Group actorGroup;
-    public Group brickGroup;
-    public Group spawnedBalls;
-    public Group wallGroup;
+    public BodyGroup actorGroup;
+    public BodyGroup balls = new BodyGroup();
+    public BodyGroup bricks = new BodyGroup();
+    public BodyGroup walls= new BodyGroup();
+
 
     public int bricksToClear;
     private int[][] curLevelMap;
@@ -41,36 +44,51 @@ public class Level {
     float BRKW, BRKH;
     float margin, header, footer;
     public float DRAW_X, DRAW_Y;
+    int brickC;
 
     public Level(LevelManager manager, int level){
         this.manager = manager;
         this.game = manager.screen.getGame();
         this.level_c = level;
-        brickGroup = new Group();
-        spawnedBalls = new Group();
-        wallGroup = new Group();
-        actorGroup = new Group();
+        actorGroup = new BodyGroup();
 
         w_SCL = (Const.LEVEL_WIDTH_SCALAR * (level_c-1));
-        w_SCL = 0.5f + (w_SCL>0? w_SCL :0);
+        w_SCL = 0.7f + (w_SCL>0? w_SCL :0);
         h_SCL = (Const.LEVEL_HEIGHT_SCALAR * (level_c-1));
-        h_SCL = 0.5f + (h_SCL>0? h_SCL :0);
+        h_SCL = 0.8f + (h_SCL>0? h_SCL :0);
 
-        // we will be drawing from lr = (-WRLDW/2,0)
-        WRLDW = game.SCRW * w_SCL;
-        WRLDH = game.SCRH * h_SCL;
-        WRLDWR = WRLDW*0.5f;
-        WRLDHR = WRLDH*0.5f;
+        brickC = (int)(Const.STARTING_BRICKC * (1.0f+ (((float)level-1) * Const.BRICK_SLALAR)));
+
 
         // sample brick for measurements
         Texture brickTex = manager.screen.getAssManager().get(Const.TEXTURES[3], Texture.class);
         BRKH = brickTex.getHeight() / Const.PPM;
         BRKW = brickTex.getWidth() / Const.PPM;
 
+        // we will be drawing from lr = (-WRLDW/2,0)
+        switch (game.getMode()){
+            case ZEN:
+                // we are defining brick map based on world width
+                WRLDW = game.SCRW * w_SCL;
+                WRLDH = game.SCRH * h_SCL;
+
+                break;
+            case CHALLENGE:
+            case CREATE:
+                // we are defining world width based on brick map
+                this.curLevelMap = Const.testLevels[level-1];
+                WRLDW = curLevelMap[0].length * BRKW + BRKW*3;
+                WRLDW += WRLDW < game.SCRWR ? game.SCRWR - WRLDW:0; // fit to at least 1/2 viewport
+                WRLDH = WRLDW * Const.ASPRM;
+                break;
+
+        }
+
+        WRLDWR = WRLDW*0.5f;
+        WRLDHR = WRLDH*0.5f;
         // space from top of bricks to top of world
         header = WRLDH / Const.BRICK_HEADER;
         footer = 2*header;
-
         // space from left of bricks to left of world
         margin = (WRLDW / BRKW);
         margin = (margin - (int)(margin))/2 + BRKW;
@@ -78,18 +96,35 @@ public class Level {
         DRAW_X = (-WRLDWR)+margin;
         DRAW_Y = WRLDH-header;
 
-        // makes a level and lays out bricks
+        // precalc probability norms for brick selector
+        // normalized probabilities
+        float psum = 0;
+        for (float[] prob : brickTypeDistribution)
+            psum += prob[1];
+        for (float[] prob : brickTypeDistribution)
+            prob[1]/=psum;
+
+        // get map of brick layout. NxM int grid
+        switch (game.getMode()){
+            case ZEN:
+                this.curLevelMap = makeLevel(level, true);
+                break;
+            case CHALLENGE:
+                break;
+            case CREATE:
+                break;
+        }
+
+        // lays out bricks according to level map
         createBricks(level_c);
 
         // create wall bounds
         float wallwidth = 1.0f;
-        wallGroup.addActor(new Wall(this, -WRLDWR-wallwidth, 0, wallwidth, WRLDH)); //L
-        wallGroup.addActor(new Wall(this, WRLDWR, 0, wallwidth, WRLDH)); //R
-        wallGroup.addActor(new Wall(this, -WRLDWR, WRLDH, WRLDW, wallwidth)); //T
-
-        actorGroup.addActor(wallGroup);
-        actorGroup.addActor(brickGroup);
-        actorGroup.addActor(spawnedBalls);
+        walls.addActor(new Wall(this, -WRLDWR-wallwidth, 0, wallwidth, WRLDH));
+        walls.addActor(new Wall(this, WRLDWR, 0, wallwidth, WRLDH)); //R
+        walls.addActor(new Wall(this, -WRLDWR, WRLDH, WRLDW, wallwidth)); //T
+        actorGroup.addActor(walls);
+        actorGroup.addActor(bricks);
     }
 
     public int[][] getCurLevelMap(){
@@ -110,33 +145,15 @@ public class Level {
         return neighbors;
     }
 
+    // take level defined by level map and create brick actors
     public void createBricks(int level){
-        // precalc probability norms for brick selector
-        // normalized probabilities
-        float psum = 0;
-        for (float[] prob : brickTypeDistribution)
-            psum += prob[1];
-        for (float[] prob : brickTypeDistribution)
-            prob[1]/=psum;
-
-        switch (game.getMode()){
-            case ZEN:
-                this.curLevelMap = makeLevel(level, true);
-                break;
-            case CHALLENGE:
-                this.curLevelMap = Const.testLevels[level-1];
-                break;
-            case CREATE:
-                this.curLevelMap = new int[][]{{1,2,3,4,5,6,7,8,9}};
-        }
-
         bricksToClear = 0;
         Brick brick;
         for (int i = 0; i < curLevelMap.length; ++i){
             for (int j=0; j< curLevelMap[0].length; ++j) {
                 if (curLevelMap[i][j] > 0) {
                     brick = new Brick(this, j, i, curLevelMap[i][j]);
-                    brickGroup.addActor(brick);
+                    bricks.addActor(brick);
                     brickMap.put(new Vector2(j,i), brick);
                     if (brick.type != Brick.BrickType.Immune)
                         ++bricksToClear;
@@ -150,12 +167,12 @@ public class Level {
             {1,0.8f},
             {2,0.3f},
             {3,0.3f},
-            {4,0.02f},
-            {5,0.03f},
-            {6,0.05f},
+            {4,0.15f},
+            {5,0.15f},
+            {6,0.25f},
             {7,0.03f},
-            {8,0.05f},
-            {9,0.1f}
+            {8,0.2f},
+            {9,0.333333f}
     };
 
     float[][] levelBrickProbDist = brickTypeDistribution;
@@ -182,7 +199,7 @@ public class Level {
     }
 
     public int[][] makeLevel(int level, boolean symmetric){
-        int brickC = (int)(Const.STARTING_BRICKC * (1.0f+ (((float)level-1) * Const.BRICK_SLALAR)));
+
         levelBrickProbDist = updateProbabilities(level);
 
         int columns = (int)((WRLDW - (2*margin)) / BRKW);

@@ -10,10 +10,13 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.cschlisner.hbd.HyperBrickGame;
 import com.cschlisner.hbd.actor.ui.InfoBar;
@@ -37,7 +40,8 @@ public class CreateScreen implements Screen, GameViewCtx {
     InputListener mapMoveListener = new InputListener(){
         @Override
         public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-            game.translateCamera(1,1);
+//            game.translateCamera(1,1);
+            System.out.println(String.format("TDOWN:(%s,%s)", x,y));
             return true;
         }
 
@@ -45,8 +49,29 @@ public class CreateScreen implements Screen, GameViewCtx {
         public void touchDragged(InputEvent event, float x, float y, int pointer) {
             super.touchDragged(event,x,y,pointer);
             Vector3 tpos = game.camera.unproject(new Vector3(x,y,0));
+            Vector3 tposl = game.camera.unproject(new Vector3(x-Gdx.input.getDeltaX(pointer),y-Gdx.input.getDeltaY(pointer),0));
+            tpos.y = game.SCRH - tpos.y;
+            tposl.y = game.SCRH - tposl.y;
+            float mvscl = 0.001f;
+            float mvx = tposl.x - tpos.x;
+            float mvy = tpos.y - tposl.y;
+            game.translateCamera(mvx,mvy);
+        }
+    };
 
-            game.translateCamera(game.CAMX-tpos.x, game.CAMY-tpos.y);
+    ActorGestureListener gestureListener = new ActorGestureListener(){
+        @Override
+        public void pinch(InputEvent event, Vector2 initialPointer1, Vector2 initialPointer2, Vector2 pointer1, Vector2 pointer2) {
+            super.pinch(event, initialPointer1, initialPointer2, pointer1, pointer2);
+            // movement deltas (calc using areas of squares defined by pointer locations)
+            float ai = initialPointer1.dst2(initialPointer2);
+            float a = pointer1.dst2(pointer2);
+            if (a > ai) {
+                if (game.camera.zoom>=0.05)
+                    game.camera.zoom -= Math.sqrt(a-ai) / Const.PPM / 1000;
+            }
+            else if (game.camera.zoom<10)
+                game.camera.zoom += Math.sqrt(ai-a) / Const.PPM / 1000;
         }
     };
 
@@ -65,6 +90,7 @@ public class CreateScreen implements Screen, GameViewCtx {
 
         UIStage.addActor(creator);
         UIStage.addListener(mapMoveListener);
+        UIStage.addListener(gestureListener);
     }
 
     @Override
