@@ -34,14 +34,15 @@ public class Level {
 
     public int bricksToClear;
     private int[][] curLevelMap;
-    private Hashtable<Vector2, Brick> brickMap = new Hashtable<>();
+    public Hashtable<Vector2, Brick> brickMap = new Hashtable<>();
 
     /* formatting brick group */
     public float WRLDW;
     public float WRLDH;
     public float WRLDWR, WRLDHR;
     public float w_SCL, h_SCL;
-    float BRKW, BRKH;
+    public float BRKW;
+    public float BRKH;
     float margin, header, footer;
     public float DRAW_X, DRAW_Y;
     int brickC;
@@ -73,10 +74,13 @@ public class Level {
                 WRLDH = game.SCRH * h_SCL;
 
                 break;
-            case CHALLENGE:
             case CREATE:
+                this.curLevelMap = new int[][]{{0,0,0,0,0,0,0},{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};
+                // no break here on purpose...
+            case CHALLENGE:
                 // we are defining world width based on brick map
-                this.curLevelMap = Const.testLevels[level-1];
+                this.curLevelMap = curLevelMap == null ? Const.testLevels[level-1] : curLevelMap;
+            default:
                 WRLDW = curLevelMap[0].length * BRKW + BRKW*3;
                 WRLDW += WRLDW < game.SCRWR ? game.SCRWR - WRLDW:0; // fit to at least 1/2 viewport
                 WRLDH = WRLDW * Const.ASPRM;
@@ -152,7 +156,7 @@ public class Level {
         for (int i = 0; i < curLevelMap.length; ++i){
             for (int j=0; j< curLevelMap[0].length; ++j) {
                 if (curLevelMap[i][j] > 0) {
-                    brick = new Brick(this, j, i, curLevelMap[i][j]);
+                    brick = new Brick(this, j, i, Brick.BrickType.values()[curLevelMap[i][j]-1]);
                     bricks.addActor(brick);
                     brickMap.put(new Vector2(j,i), brick);
                     if (brick.type != Brick.BrickType.Immune)

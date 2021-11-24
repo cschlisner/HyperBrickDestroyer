@@ -1,6 +1,7 @@
 package com.cschlisner.hbd.screen;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn;
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.moveToAligned;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -13,12 +14,14 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.cschlisner.hbd.HyperBrickGame;
+import com.cschlisner.hbd.actor.Brick;
 import com.cschlisner.hbd.actor.ui.InfoBar;
 import com.cschlisner.hbd.actor.ui.LevelCreator;
 import com.cschlisner.hbd.actor.ui.PauseMenu;
@@ -30,55 +33,76 @@ import jdk.jfr.internal.tool.PrettyWriter;
 public class CreateScreen implements Screen, GameViewCtx {
     public HyperBrickGame game;
     Stage gameStage, UIStage;
-    PauseMenu pauseMenu;
+    public PauseMenu pauseMenu;
 
     LevelCreator creator;
     private InputMultiplexer inputMultiplexer = new InputMultiplexer();
     private boolean paused;
     LevelManager levelManager;
 
-    InputListener mapMoveListener = new InputListener(){
-        @Override
-        public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-//            game.translateCamera(1,1);
-            System.out.println(String.format("TDOWN:(%s,%s)", x,y));
-            return true;
-        }
-
-        @Override
-        public void touchDragged(InputEvent event, float x, float y, int pointer) {
-            super.touchDragged(event,x,y,pointer);
-            Vector3 tpos = game.camera.unproject(new Vector3(x,y,0));
-            Vector3 tposl = game.camera.unproject(new Vector3(x-Gdx.input.getDeltaX(pointer),y-Gdx.input.getDeltaY(pointer),0));
-            tpos.y = game.SCRH - tpos.y;
-            tposl.y = game.SCRH - tposl.y;
-            float mvscl = 0.001f;
-            float mvx = tposl.x - tpos.x;
-            float mvy = tpos.y - tposl.y;
-            game.translateCamera(mvx,mvy);
-        }
-    };
-
     ActorGestureListener gestureListener = new ActorGestureListener(){
         @Override
-        public void pinch(InputEvent event, Vector2 initialPointer1, Vector2 initialPointer2, Vector2 pointer1, Vector2 pointer2) {
-            super.pinch(event, initialPointer1, initialPointer2, pointer1, pointer2);
-            // movement deltas (calc using areas of squares defined by pointer locations)
-            float ai = initialPointer1.dst2(initialPointer2);
-            float a = pointer1.dst2(pointer2);
-            if (a > ai) {
-                if (game.camera.zoom>=0.05)
-                    game.camera.zoom -= Math.sqrt(a-ai) / Const.PPM / 1000;
+        public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
+            if (event.getTarget() instanceof Group) {
+                super.pan(event, x, y, deltaX, deltaY);
+                game.translateCamera(-deltaX / Const.PPM, -deltaY / Const.PPM);
             }
-            else if (game.camera.zoom<10)
-                game.camera.zoom += Math.sqrt(ai-a) / Const.PPM / 1000;
+        }
+
+        @Override
+        public void zoom(InputEvent event, float initialDistance, float distance) {
+            if (event.getTarget() instanceof Group) {
+                super.zoom(event, initialDistance, distance);
+                // movement deltas (calc using areas of squares defined by pointer locations)
+                float delta = distance - initialDistance;
+                game.camera.zoom -= delta / Const.PPM / 500;
+                game.updateCamera();
+            }
+        }
+
+        @Override
+        public void tap(InputEvent event, float x, float y, int count, int button) {
+            if (event.getTarget() instanceof Group) {
+                super.tap(event, x, y, count, button);
+                int[] gridplace = screen2Grid(x,y);
+                if (gridplace[0]+gridplace[1] >= 0){
+                    Brick newB = new Brick(levelManager.curLevel, gridplace[0], gridplace[1], creator.brickSelct.getSelected());
+                    levelManager.curLevel.bricks.addActor(newB);
+                    gameStage.addActor(newB);
+                }
+            }
         }
     };
+
+    public int[] screen2Grid(float x, float y){
+        Vector3 worldPos = new Vector3(x,game.TSCRH-y,0);
+        game.camera.unproject(worldPos);
+//        worldPos.y = game.SCRH-worldPos.y;
+
+        if (Math.abs(worldPos.x) > creator._level.WRLDWR ||
+            Math.abs(worldPos.y) > creator._level.WRLDH)
+            return new int[]{-1,-1};
+        // get grid pos
+        int[] gridpos = new int[2];
+        gridpos[0] = (int)((worldPos.x+levelManager.curLevel.WRLDWR) / levelManager.curLevel.BRKW); // x
+        gridpos[1] = (int)((levelManager.curLevel.WRLDH - worldPos.y) / levelManager.curLevel.BRKH)+1; // y
+        return gridpos;
+    }
+
+//    public Vector2 grid2Screen(int x, y){
+//        Vector3 gameCamPos = worldPos.cpy();
+//        paddle.screen.camera.project(gameCamPos);
+//        float x = gameCamPos.x + OX;
+//        float y = gameCamPos.y +OY ;
+//        return new Vector3(x,y,0);
+//    };
 
     public CreateScreen(HyperBrickGame game) {
         this.game = game;
-        this.creator = new LevelCreator(this);
         levelManager = new LevelManager(this);
+        levelManager.newLevel(1);
+
+        this.creator = new LevelCreator(this, levelManager.curLevel);
 
 
         game.resetCamera();
@@ -89,7 +113,8 @@ public class CreateScreen implements Screen, GameViewCtx {
         UIStage.getBatch().setProjectionMatrix(game.textCamera.combined);
 
         UIStage.addActor(creator);
-        UIStage.addListener(mapMoveListener);
+        UIStage.addActor(creator.uiContainer);
+//        UIStage.addListener(mapMoveListener);
         UIStage.addListener(gestureListener);
     }
 
@@ -109,9 +134,16 @@ public class CreateScreen implements Screen, GameViewCtx {
 
         pauseMenu = new PauseMenu(this);
 
-        levelManager.newLevel(1);
 
         gameStage.addActor(levelManager.curLevel.actorGroup);
+
+        pauseMenu.quitBtn.setOnClick(new Runnable() {
+            @Override
+            public void run() {
+                dispose();
+                game.setScreen(new TitleScreen(game));
+            }
+        });
 
     }
 
@@ -122,9 +154,9 @@ public class CreateScreen implements Screen, GameViewCtx {
         game.updateCamera();
 
         gameStage.act();
+        gameStage.draw();
         UIStage.act();
         UIStage.draw();
-        gameStage.draw();
     }
 
     @Override

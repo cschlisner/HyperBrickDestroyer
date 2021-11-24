@@ -78,10 +78,11 @@ public class Brick extends Actor {
     /*
         x,y = coordinates in LevelManager's brick table
      */
-    public Brick(Level level, int x, int y, int typeInd){
+    public Brick(Level level, int x, int y, BrickType type){
+        int typeInd = type.ordinal()+1;
         this.setName("Brick"+typeInd);
         this.level = level;
-        this.type = BrickType.values()[typeInd-1];
+        this.type = type;
         setColor(brickColors.get(type));
 
         // textures: brick type texture and damage textures

@@ -12,6 +12,7 @@ public class Const {
     public static final String _TEXTURE = "texture/";
     public static final String _FONT = "font/";
     public static final String _PART = "particle/";
+    public static final String _SKIN = "skin/";
 
     // sound files
     public static final String[] SOUNDS = {
@@ -53,6 +54,10 @@ public class Const {
             _PART+"bounce.p",
             _PART+"brickbroke.p",
             _PART+"explosion.p",
+    };
+
+    public static final String[] SKINS = {
+            _SKIN+"balltracer.p",
     };
 
 
