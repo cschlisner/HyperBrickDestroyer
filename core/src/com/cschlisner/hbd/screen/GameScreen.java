@@ -210,6 +210,8 @@ public class GameScreen implements Screen,GameViewCtx {
 	public void render(float delta) {
 		ScreenUtils.clear(Color.BLACK);
 		game.updateCamera();
+		gameStage.getBatch().setProjectionMatrix(camera.combined);
+		UIStage.getBatch().setProjectionMatrix(UIcamera.combined);
 
 		synchronized (world) {
 			// Draw our stages
@@ -282,10 +284,10 @@ public class GameScreen implements Screen,GameViewCtx {
 			if (infoBar.level > Const.START_LEVEL) {
 				try {
 					levelManager.curLevel.walls.remove();
-					levelManager.curLevel.bricks.remove(infoBar.level > 3);
+					levelManager.curLevel.bricks.remove(true);
 					levelManager.curLevel.balls.remove();
-					if (levelManager.lastLevel != null)
-						levelManager.lastLevel.actorGroup.remove();
+//					if (levelManager.lastLevel != null)
+//						levelManager.lastLevel.actorGroup.remove();
 				}
 				catch (Exception e){
 					System.out.println(e);
@@ -302,12 +304,22 @@ public class GameScreen implements Screen,GameViewCtx {
 
 		// NEW LEVEL //
 		++infoBar.level;
-		if (game.getMode() == HyperBrickGame.GameMode.CHALLENGE && infoBar.level == Const.testLevels.length) {
-			dispose();
-			game.setScreen(new TitleScreen(game));
-			return;
+		switch (game.getMode()){
+			case CHALLENGE:
+				if (Const.createdlevels.size() < infoBar.level) {
+					dispose();
+					game.setScreen(new TitleScreen(game));
+					return;
+				}
+				levelManager.readMap(Const.createdlevels.get(infoBar.level-1));
+				break;
+			case ZEN:
+				levelManager.genLevel(infoBar.level);
+				/// TEST CODE
+				game.camera.zoom = (levelManager.curLevel.WRLDW+ Const.WALL_WIDTH*2) / Const.VIEW_WIDTHM;
+				game.resetCamera();
+				break;
 		}
-		levelManager.newLevel(infoBar.level);
 
 		if (infoBar.level == Const.START_LEVEL+1){
 			ball = new Ball(levelManager.curLevel, true);
@@ -318,57 +330,68 @@ public class GameScreen implements Screen,GameViewCtx {
 			UIStage.addListener(paddle.paddleInput.paddleInputListener);
 		}
 
-		game.resetCamera();
+
 		paddle.reset(levelManager.curLevel);
 		ball.handleDeath();
 
-		ball.defSpeed *= 1 + ((float) infoBar.level * Const.BALL_SPEED_SCALAR);
+		ball.defSpeed *= 1 + (Const.BALL_SPEED_SCALAR);
 		waitingOnKickOff = true;
 		infoBar.lives = 3;
 
-		gameStage.addActor(levelManager.curLevel.actorGroup);
+		levelManager.curLevel.addActors(gameStage);
 		paddle.paddleInput.addListener(ballKickOffListener);
 		this.levelManager.levelInitialized = true;
 	}
 
 	private void updateCamera(){
-//		 translation based on paddle x, y
-		float scr_mv_xl = game.CAMOX+Const.BALL_MOVE_MARGINX;
-		float scr_mv_xr = game.CAMRT-Const.BALL_MOVE_MARGINX;
-		float scr_mv_yb = game.CAMOY+Const.BALL_MOVE_MARGINY;
-		float scr_mv_yt = game.CAMTP-Const.BALL_MOVE_MARGINY;
+		// camera zoom if ball is travelling up
+//		float maxzoom = levelManager.curLevel.WRLDW / game.SCRW;
+//		float minzoom = 1;
+//		float zoomscl = ball.getY() / levelManager.curLevel.WRLDH * 1.5f;
+//		float z = maxzoom * zoomscl;
+//		camera.zoom = z > maxzoom ? maxzoom : (z < minzoom ? minzoom : z);
+		game.updateCamera(); // updateCamera() will adjust SCRW/SCRH for new zoom value
+		game.updateTextCamera();
+
+		// outer edges of walls
+//		float rw = levelManager.curLevel.WRLDWR + Const.WALL_WIDTH/2;
+//		float lw = -levelManager.curLevel.WRLDWR - Const.WALL_WIDTH/2;
+		float tw = levelManager.curLevel.WRLDH + Const.WALL_WIDTH/2;
+////		 translation based on paddle x, y
+//		float scr_mv_xl = game.CAMOX+Const.BALL_MOVE_MARGINX;
+//		float scr_mv_xr = game.CAMRT-Const.BALL_MOVE_MARGINX;
+		float scr_mv_yb = game.CAMOY+(game.SCRH/Const.BALL_MOVE_MARGIN);
+		float scr_mv_yt = game.CAMTP-(game.SCRH/Const.BALL_MOVE_MARGIN);
 		float mv_y = 0, mv_x = 0;
-		if (game.CAMOX > -levelManager.curLevel.WRLDWR && paddle.getX() < scr_mv_xl)
-			mv_x = paddle.getX()-scr_mv_xl;
-		else if (game.CAMRT < levelManager.curLevel.WRLDWR && paddle.getRight() > scr_mv_xr)
-			mv_x = paddle.getRight()-scr_mv_xr;
-		if (game.CAMTP < levelManager.curLevel.WRLDH && ball.position.y > scr_mv_yt)
-			mv_y = ball.position.y-scr_mv_yt;
-		if (game.CAMOY > 0 && ball.position.y < scr_mv_yb)
-			mv_y= ball.position.y-scr_mv_yb;
 
-
-		// zoom based on primary ball y
-//		float zoom = 1.0f; // min zoom
-//		float z = (levelManager.curLevel.WRLDW/ game.SCRW) * 0.85f; // z = maximum zoom amount.
-//		z = z<1?1:z;
-//		float H = levelManager.curLevel.WRLDH;
-//		float h = 5; // H/h = min height at which we zoom
-////		float m = (z < zoom ? (h-h*z)/H : (z*h-h)/H);
-//		float m = (z*h-h)/H;
-////		float b = (z < zoom ? zoom+(H*m)/h : zoom-(H*m)/h);
-//		float b = zoom-(H*m)/h;
-//		float y = ball.position.y;
-//
-//		if (y >= H/h) {
-////			zoom = (z < zoom ? -m*y+b : m*y+b); // TODO: fix inverse zooming for small levels
-//			zoom = m*y+b;
-//			zoom = zoom < 0? 1 : zoom;
+		// left/right camera movement
+//		if (game.CAMOX > lw && paddle.getX() < scr_mv_xl) {
+//			mv_x = paddle.getX()-scr_mv_xl;
 //		}
-//		System.out.println("ZOOM: "+zoom+" | "+z);
-		float zoomscl = 0.035f;
-		camera.zoom = 1 + (ball.getY()/paddle.getTop())*zoomscl;
-		game.translateCamera(mv_x * (ball.defSpeed * Const.CAMSMOOTH), mv_y);
+//		if (game.CAMRT < rw && paddle.getRight() > scr_mv_xr) {
+//			mv_x = paddle.getRight()-scr_mv_xr;
+//		}
+		if (ball.position.y > scr_mv_yt) {
+			mv_y = ball.position.y-scr_mv_yt;
+		}
+		if (game.CAMOY > 0 && ball.position.y < scr_mv_yb) {
+			mv_y= ball.position.y-scr_mv_yb;
+		}
+
+		// smooth camera movement
+//		mv_x *= (ball.defSpeed * Const.CAMSMOOTH);
+
+		// stop screen if wall hit
+//		if ((game.CAMOX+mv_x) <= lw)
+//			mv_x = (lw - game.CAMOX);
+//		else if ((game.CAMRT+mv_x)  >= rw)
+//			mv_x = (rw - game.CAMRT);
+//		if ((game.CAMOY+mv_y) <= 0)
+//			mv_y = -game.CAMOY;
+//		if ((game.CAMTP+mv_y)  >= tw)
+//			mv_y = (tw - game.CAMTP);
+
+		game.setCamera(game.CAMX+mv_x, game.CAMY+mv_y);
 	}
 
 	ShapeRenderer shapeRend = new ShapeRenderer();
@@ -464,5 +487,15 @@ public class GameScreen implements Screen,GameViewCtx {
 	@Override
 	public AssetManager getAssManager() {
 		return assManager;
+	}
+
+	@Override
+	public Stage getGameStage() {
+		return gameStage;
+	}
+
+	@Override
+	public Stage getUIStage() {
+		return UIStage;
 	}
 }

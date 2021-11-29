@@ -75,7 +75,7 @@ public class Ball extends Actor {
         velocity = new Vector2(0, -1);
         r = getWidth()/2;
 
-        defSpeed *= 1 + ((float) level.level_c / 100.0f);
+        defSpeed *= 1 + ((float) level.manager.level_c / 100.0f);
 
 
         if (isPrimary) {

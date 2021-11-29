@@ -174,11 +174,6 @@ public class PaddleInputHandler extends Actor {
     @Override
     public void act(float delta) {
 
-        // update the level we are on if it changed
-        if (curLevel.level_c < paddle.screen.levelManager.curLevel.level_c) {
-            reset();
-        }
-
         // Update position of the world paddle
         updateWorldPaddle();
 
