@@ -56,27 +56,27 @@ public class TitleScreen implements Screen {
         zenBtn.setOnClick(new Runnable() {
             @Override
             public void run() {
+                dispose();
                 game.setMode(HyperBrickGame.GameMode.ZEN);
                 game.setScreen(new GameScreen(game));
-                dispose();
             }
         });
 
         challengeBtn.setOnClick(new Runnable() {
             @Override
             public void run() {
+                dispose();
                 game.setMode(HyperBrickGame.GameMode.CHALLENGE);
                 game.setScreen(new GameScreen(game));
-                dispose();
             }
         });
 
         createBtn.setOnClick(new Runnable() {
             @Override
             public void run() {
+                dispose();
                 game.setMode(HyperBrickGame.GameMode.CREATE);
                 game.setScreen(new CreateScreen(game));
-                dispose();
             }
         });
         Gdx.input.setInputProcessor(stage);

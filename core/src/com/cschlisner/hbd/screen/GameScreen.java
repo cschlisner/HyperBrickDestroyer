@@ -200,6 +200,9 @@ public class GameScreen implements Screen,GameViewCtx {
 			}
 		});
 
+		camera.update();
+		game.resetCamera();
+		game.updateCamera();
 
 		advanceLevel();
 	}
@@ -209,7 +212,6 @@ public class GameScreen implements Screen,GameViewCtx {
     @Override
 	public void render(float delta) {
 		ScreenUtils.clear(Color.BLACK);
-		game.updateCamera();
 		gameStage.getBatch().setProjectionMatrix(camera.combined);
 		UIStage.getBatch().setProjectionMatrix(UIcamera.combined);
 
@@ -315,9 +317,6 @@ public class GameScreen implements Screen,GameViewCtx {
 				break;
 			case ZEN:
 				levelManager.genLevel(infoBar.level);
-				/// TEST CODE
-				game.camera.zoom = (levelManager.curLevel.WRLDW+ Const.WALL_WIDTH*2) / Const.VIEW_WIDTHM;
-				game.resetCamera();
 				break;
 		}
 
@@ -341,57 +340,72 @@ public class GameScreen implements Screen,GameViewCtx {
 		levelManager.curLevel.addActors(gameStage);
 		paddle.paddleInput.addListener(ballKickOffListener);
 		this.levelManager.levelInitialized = true;
+
+		game.resetCamera();
 	}
 
 	private void updateCamera(){
+
 		// camera zoom if ball is travelling up
-//		float maxzoom = levelManager.curLevel.WRLDW / game.SCRW;
-//		float minzoom = 1;
-//		float zoomscl = ball.getY() / levelManager.curLevel.WRLDH * 1.5f;
-//		float z = maxzoom * zoomscl;
-//		camera.zoom = z > maxzoom ? maxzoom : (z < minzoom ? minzoom : z);
-		game.updateCamera(); // updateCamera() will adjust SCRW/SCRH for new zoom value
-		game.updateTextCamera();
+		float maxzoom = levelManager.curLevel.WRLDH / Const.VIEW_HEIGHTM;
+		float minzoom = 1;
+		float z = minzoom + maxzoom * (ball.position.y / levelManager.curLevel.WRLDH);
+//		z_y = ball.position.y-scr_mv_yt;
+//		z = (scr_mv_yt+z_y) / scr_mv_yt;
+		z =(float)((int)(  z * 100 ) / 100.0f);
+		camera.zoom = z > maxzoom ? maxzoom : Math.max(z, minzoom);
+
+		game.updateCamera(false);
 
 		// outer edges of walls
-//		float rw = levelManager.curLevel.WRLDWR + Const.WALL_WIDTH/2;
-//		float lw = -levelManager.curLevel.WRLDWR - Const.WALL_WIDTH/2;
-		float tw = levelManager.curLevel.WRLDH + Const.WALL_WIDTH/2;
-////		 translation based on paddle x, y
-//		float scr_mv_xl = game.CAMOX+Const.BALL_MOVE_MARGINX;
-//		float scr_mv_xr = game.CAMRT-Const.BALL_MOVE_MARGINX;
+		float rw = levelManager.curLevel.WRLDWR + Const.WALL_WIDTH;
+		float lw = -levelManager.curLevel.WRLDWR - Const.WALL_WIDTH;
+		float tw = levelManager.curLevel.WRLDH + Const.WALL_WIDTH;
+//	    translation based on paddle x zoom based on ball y
+		float scr_mv_xl = game.CAMOX+Const.BALL_MOVE_MARGINX;
+		float scr_mv_xr = game.CAMRT-Const.BALL_MOVE_MARGINX;
 		float scr_mv_yb = game.CAMOY+(game.SCRH/Const.BALL_MOVE_MARGIN);
 		float scr_mv_yt = game.CAMTP-(game.SCRH/Const.BALL_MOVE_MARGIN);
+        float z_y = 0, z_x = 0;
+
+
+
+//
+		float cmox, cmoy, cmrt, cmtp;
+		cmox = game.CAMOX;
+		cmoy = game.CAMOY;
+		cmtp = game.CAMTP;
+		cmrt = game.CAMRT;
+
 		float mv_y = 0, mv_x = 0;
-
-		// left/right camera movement
-//		if (game.CAMOX > lw && paddle.getX() < scr_mv_xl) {
-//			mv_x = paddle.getX()-scr_mv_xl;
-//		}
-//		if (game.CAMRT < rw && paddle.getRight() > scr_mv_xr) {
-//			mv_x = paddle.getRight()-scr_mv_xr;
-//		}
-		if (ball.position.y > scr_mv_yt) {
-			mv_y = ball.position.y-scr_mv_yt;
+		// move camera if view port isn't as big as level
+		if (game.SCRW < levelManager.curLevel.WRLDW) {
+//			left/right camera movement
+			if ( paddle.getX() < scr_mv_xl) {
+				mv_x = paddle.getX() - scr_mv_xl;
+			}
+			else if (paddle.getRight() > scr_mv_xr ) {
+				mv_x = paddle.getRight() - scr_mv_xr;
+			}
+			mv_x*=(Const.PADDLE_SPEED*Const.CAMSMOOTH);
+			if (cmox + mv_x < lw+Const.WALL_WIDTH) {
+				mv_x = lw+Const.WALL_WIDTH - cmox;
+			}
+			if (cmrt + mv_x > rw-Const.WALL_WIDTH) {
+				mv_x = rw-Const.WALL_WIDTH - cmrt;
+			}
 		}
-		if (game.CAMOY > 0 && ball.position.y < scr_mv_yb) {
-			mv_y= ball.position.y-scr_mv_yb;
-		}
+		mv_y = -game.CAMOY;
+//		else { // center camera
+//			if (Math.abs(camera.position.x) > Const.WALL_WIDTH)
+//				mv_x = -game.camera.position.x;
+////			mv_y = game.SCRHR - camera.position.y;
+//		}
 
-		// smooth camera movement
-//		mv_x *= (ball.defSpeed * Const.CAMSMOOTH);
 
-		// stop screen if wall hit
-//		if ((game.CAMOX+mv_x) <= lw)
-//			mv_x = (lw - game.CAMOX);
-//		else if ((game.CAMRT+mv_x)  >= rw)
-//			mv_x = (rw - game.CAMRT);
-//		if ((game.CAMOY+mv_y) <= 0)
-//			mv_y = -game.CAMOY;
-//		if ((game.CAMTP+mv_y)  >= tw)
-//			mv_y = (tw - game.CAMTP);
+		game.translateCamera(mv_x, mv_y);
 
-		game.setCamera(game.CAMX+mv_x, game.CAMY+mv_y);
+//		debugCamera();
 	}
 
 	ShapeRenderer shapeRend = new ShapeRenderer();
@@ -425,11 +439,18 @@ public class GameScreen implements Screen,GameViewCtx {
 		batch.end();
 	}
 
+	public void debugCamera(){
+		UIStage.getBatch().begin();
+		markerFont.draw(UIStage.getBatch(), String.format("(%s,%s)\n(%s,%s)\nz:%s",game.CAMOX, game.CAMOY, game.CAMX, game.CAMY, camera.zoom), 0, game.TSCRH-500);
+		UIStage.getBatch().end();
+	}
+
 	@Override
 	public void resize (int width, int height) {
 		gameStage.getViewport().update(width, height, true);
 		UIStage.getViewport().update(width,height,true);
 		ScreenUtils.clear(0, 0, 0, 0.6f);
+		game.resetCamera();
 	}
 
 	@Override

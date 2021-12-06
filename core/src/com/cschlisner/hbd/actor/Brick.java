@@ -232,8 +232,9 @@ public class Brick extends Actor {
         // remove from world
         level.game.getWorld().destroyBody(this.body);
         this.broken=true;
-        if (breakEffect.isComplete())
-            breakEffect.start();
+//        if (breakEffect.isComplete())
+//            breakEffect.start();
+        breakEffect.allowCompletion();
         breakSound.play();
         switch (type){
             case BallSpawn:

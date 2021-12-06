@@ -139,7 +139,7 @@ public class Level implements Json.Serializable {
         float[][] newProbDist = new float[brickTypeDistribution.length][brickTypeDistribution[0].length];
         for (int i = 0; i < newProbDist.length; ++i){
             newProbDist[i][0] = i;
-            newProbDist[i][1] = (i > level ? 0.001f : 0.1f)*(i+1) * levelBrickProbDist[i][1];
+            newProbDist[i][1] = (i > level ? 0.01f : 1f)*(i+1) * levelBrickProbDist[i][1];
         }
         normProbDist(newProbDist);
         return newProbDist;

@@ -242,7 +242,7 @@ public class PaddleInputHandler extends Actor {
             H = Interpolation.fastSlow.apply(160.0f, 259.9999f, colorDelta);
             S = Interpolation.bounceOut.apply(0.2f, 1f, colorDelta);
             L = Interpolation.circleOut.apply(0.32f, 0.5f, colorDelta);
-            relPadCol = game.HSLtoColor(H, S, L, parentAlpha * 0.4f);
+            relPadCol = game.HSLtoColor(H, S, L, parentAlpha * 0.9f);
             shapeRenderer.setColor(relPadCol);
             shapeRenderer.rect(relP.x,  game.TSCRY, relS.x, relS.y/3);
 
