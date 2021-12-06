@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Random;
 
+import javax.swing.plaf.ColorUIResource;
+
 public class Brick extends Actor {
     static Random rng = new Random();
 
@@ -41,7 +43,6 @@ public class Brick extends Actor {
     public static Hashtable<BrickType,Color> brickColors = new Hashtable<>();
     public static final int BRICKTYPE_COUNT = BrickType.values().length;
     static {
-
         Color[] palate = {Color.SLATE, Color.CYAN, Color.LIGHT_GRAY, Color.WHITE,
                 Color.MAGENTA, Color.LIME, Color.GOLDENROD, Color.SKY, Color.FIREBRICK};
         // fixed color palate for special bricks
@@ -49,7 +50,6 @@ public class Brick extends Actor {
         for (BrickType t : BrickType.values())
             brickColors.put(t, palate[i++]);
     }
-
 
     Level level;
     public BrickType type;
@@ -83,7 +83,9 @@ public class Brick extends Actor {
         this.setName("Brick"+typeInd);
         this.level = level;
         this.type = type;
-        setColor(brickColors.get(type));
+        if (type != BrickType.Normal)
+            setColor(brickColors.get(type));
+        else setColor(new Color(rng.nextFloat(), rng.nextFloat(), rng.nextFloat(), 1));
 
         // textures: brick type texture and damage textures
         Texture dmgTexture = level.game.assetManager.get(Const.TEXTURES[2], Texture.class);
@@ -97,8 +99,8 @@ public class Brick extends Actor {
         float tw = brickTex.getWidth() / Const.PPM; // drawing to world-space
         float th = brickTex.getHeight() / Const.PPM;
 
-        float dx = level.DRAW_X+(x*tw);
-        float dy = level.DRAW_Y-(y*th);
+        float dx = (x*tw)-level.WRLDWR;
+        float dy = level.WRLDH-((y+1)*th);
         setBounds(dx,dy,tw,th);
         cx = dx + (tw/2);
         cy = dy + (th/2);
@@ -230,8 +232,9 @@ public class Brick extends Actor {
         // remove from world
         level.game.getWorld().destroyBody(this.body);
         this.broken=true;
-        if (breakEffect.isComplete())
-            breakEffect.start();
+//        if (breakEffect.isComplete())
+//            breakEffect.start();
+        breakEffect.allowCompletion();
         breakSound.play();
         switch (type){
             case BallSpawn:

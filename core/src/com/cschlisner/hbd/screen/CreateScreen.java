@@ -9,16 +9,19 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.cschlisner.hbd.HyperBrickGame;
 import com.cschlisner.hbd.actor.Brick;
@@ -62,13 +65,11 @@ public class CreateScreen implements Screen, GameViewCtx {
 
         @Override
         public void tap(InputEvent event, float x, float y, int count, int button) {
-            if (event.getTarget() instanceof Group) {
+            if (!event.isHandled() && event.getTarget() instanceof Group) {
                 super.tap(event, x, y, count, button);
                 int[] gridplace = screen2Grid(x,y);
                 if (gridplace[0]+gridplace[1] >= 0){
-                    Brick newB = new Brick(levelManager.curLevel, gridplace[0], gridplace[1], creator.brickSelct.getSelected());
-                    levelManager.curLevel.bricks.addActor(newB);
-                    gameStage.addActor(newB);
+                    levelManager.curLevel.addBrick(levelManager.curLevel, gridplace[0], gridplace[1], creator.brickSelct.getSelected());
                 }
             }
         }
@@ -80,12 +81,12 @@ public class CreateScreen implements Screen, GameViewCtx {
 //        worldPos.y = game.SCRH-worldPos.y;
 
         if (Math.abs(worldPos.x) > creator._level.WRLDWR ||
-            Math.abs(worldPos.y) > creator._level.WRLDH)
+            Math.abs(worldPos.y) > creator._level.WRLDH || worldPos.y < 0)
             return new int[]{-1,-1};
         // get grid pos
         int[] gridpos = new int[2];
-        gridpos[0] = (int)((worldPos.x+levelManager.curLevel.WRLDWR) / levelManager.curLevel.BRKW); // x
-        gridpos[1] = (int)((levelManager.curLevel.WRLDH - worldPos.y) / levelManager.curLevel.BRKH)+1; // y
+        gridpos[0] = (int)((worldPos.x+levelManager.curLevel.WRLDWR) / Const.BRICK_WIDTH); // x
+        gridpos[1] = (int)((levelManager.curLevel.WRLDH - worldPos.y) / Const.BRICK_HEIGHT); // y
         return gridpos;
     }
 
@@ -99,11 +100,6 @@ public class CreateScreen implements Screen, GameViewCtx {
 
     public CreateScreen(HyperBrickGame game) {
         this.game = game;
-        levelManager = new LevelManager(this);
-        levelManager.newLevel(1);
-
-        this.creator = new LevelCreator(this, levelManager.curLevel);
-
 
         game.resetCamera();
 
@@ -112,10 +108,8 @@ public class CreateScreen implements Screen, GameViewCtx {
         UIStage = new Stage(game.textVP);
         UIStage.getBatch().setProjectionMatrix(game.textCamera.combined);
 
-        UIStage.addActor(creator);
-        UIStage.addActor(creator.uiContainer);
-//        UIStage.addListener(mapMoveListener);
         UIStage.addListener(gestureListener);
+
     }
 
     @Override
@@ -134,8 +128,13 @@ public class CreateScreen implements Screen, GameViewCtx {
 
         pauseMenu = new PauseMenu(this);
 
+        levelManager = new LevelManager(this);
+        levelManager.blankLevel();
+        levelManager.curLevel.addActors(gameStage);
 
-        gameStage.addActor(levelManager.curLevel.actorGroup);
+        this.creator = new LevelCreator(this, levelManager.curLevel);
+        UIStage.addActor(creator);
+        UIStage.addActor(creator.uiContainer);
 
         pauseMenu.quitBtn.setOnClick(new Runnable() {
             @Override
@@ -154,8 +153,8 @@ public class CreateScreen implements Screen, GameViewCtx {
         game.updateCamera();
 
         gameStage.act();
-        gameStage.draw();
         UIStage.act();
+        gameStage.draw();
         UIStage.draw();
     }
 
@@ -176,7 +175,13 @@ public class CreateScreen implements Screen, GameViewCtx {
 
     @Override
     public void dispose() {
-
+        levelManager.curLevel.clearActors();
+        Array<Body> bodies = new Array<>();
+        game.getWorld().getBodies(bodies);
+        for (Body body : bodies)
+            game.getWorld().destroyBody(body);
+        gameStage.dispose();
+        UIStage.dispose();
     }
 
     @Override
@@ -197,6 +202,16 @@ public class CreateScreen implements Screen, GameViewCtx {
     @Override
     public AssetManager getAssManager() {
         return this.game.assetManager;
+    }
+
+    @Override
+    public Stage getGameStage() {
+        return gameStage;
+    }
+
+    @Override
+    public Stage getUIStage() {
+        return UIStage;
     }
 
     @Override

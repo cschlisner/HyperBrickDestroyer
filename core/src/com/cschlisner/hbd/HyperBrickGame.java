@@ -203,23 +203,31 @@ public class HyperBrickGame extends Game {
     }
 
     public void resetCamera(){
-        camera.zoom = 1.0f;
-        updateCamera(0, camera.viewportHeight/2);
+//        updateCamera();
+        setCamera(0, this.SCRH/2);
     }
 
     public void translateCamera(float tx, float ty){
-        updateCamera(CAMX+tx, CAMY+ty);
+        camera.translate(tx, ty);
+        updateCamera();
+//        updateTextCamera();
     }
 
+    public void setCamera(float x, float y){
+        camera.position.set(x, y, 0);
+        updateCamera();
+        textCamera.position.set(x+(TSCRW/2)-SCRWR,x+(TSCRH/2)-SCRHR,0);
+        updateTextCamera();
+    }
     public void updateCamera(){
-        updateCamera(this.CAMX, this.CAMY);
+            updateCamera(true);
     }
-
-    public void updateCamera(float x, float y){
-        camera.position.set(x,y,0);
-        camera.update();
-        this.SCRH = this.camera.viewportHeight;
-        this.SCRW = this.camera.viewportWidth;
+    public void updateCamera(boolean updateCam){
+        if (updateCam)
+            camera.update();
+        float z = camera.zoom;
+        this.SCRH = this.camera.viewportHeight * z;
+        this.SCRW = this.camera.viewportWidth * z;
         this.SCRHR = SCRH*0.5f;
         this.SCRWR = SCRW*0.5f;
         this.CAMX = camera.position.x;
@@ -228,12 +236,16 @@ public class HyperBrickGame extends Game {
         this.CAMOY = CAMY-SCRHR;
         this.CAMRT = CAMOX+SCRW;
         this.CAMTP = CAMOY+SCRH;
-
+    }
+    public void updateTextCamera(){
+        updateTextCamera(true);
+    }
+    public void updateTextCamera(boolean updateCam){
         // set text camera origin (bottom-left) at (0,0) -- NOT CENTERED ON CAMX,CAMY
         // whenever rendering text, pixel units can be used and drawn to the text camera
         // which is the size of the client screen and starts at (0,0)
-        textCamera.position.set(x+(TSCRW/2)-SCRWR,x+(TSCRH/2)-SCRHR,0);
-        textCamera.update();
+        if (updateCam)
+            textCamera.update();
         this.TSCRX = textCamera.position.x - TSCRW/2;
         this.TSCRY = textCamera.position.y - TSCRH/2;
         this.TCMRX = textCamera.position.x;

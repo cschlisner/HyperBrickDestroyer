@@ -3,6 +3,8 @@ package com.cschlisner.hbd.util;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 
+import java.util.ArrayList;
+
 public class Const {
 
     /**
@@ -128,16 +130,15 @@ public class Const {
     public static final float VIEW_WIDTHM = 15; // meters for box2d
     public static final float VIEW_HEIGHTM = 30; // meters for box2d
     public static final float ASPRM = VIEW_HEIGHTM / VIEW_WIDTHM;
-    public static final float REFDISP_x = 1440;
-    public static final float REFDISP_y = 2533;
+
     public static final float BALL_MOVE_MARGIN = 4; // 1/x of screen width, (ASPRM)/x of screen height where ball will move screen
     public static final float BALL_MOVE_MARGINX = VIEW_WIDTHM / BALL_MOVE_MARGIN;
-    public static final float BALL_MOVE_MARGINY = VIEW_HEIGHTM / 2;
+    public static final float BALL_MOVE_MARGINY = (VIEW_HEIGHTM / BALL_MOVE_MARGIN)*ASPRM;
     public static final float CAMSMOOTH = 0.005f; // value to slow down camera movement
     public static final int PADDLE_MOVE_MODE = 1;
 
     // text sizes
-    public static final int _TEXT_LG = (int)(200.0f * ((float)VIEW_WIDTH/REFDISP_x));
+    public static final int _TEXT_LG = (VIEW_WIDTH/10);
     public static final int _TEXT_MD = (int)((float)_TEXT_LG*0.75f);
     public static final int _TEXT_SM = _TEXT_LG/2;
     public static final int _TEXT_XS = _TEXT_LG/4;
@@ -179,11 +180,16 @@ public class Const {
     /* Color information */
     
     /* Level information*/
-    public static final float BALL_SPEED_SCALAR = 0.005f;
+    public static final float WALL_WIDTH = 1.0f;
+    public static final float BRICK_WIDTH = 1.3f; // meters
+    public static final float BRICK_HEIGHT = 0.64f; // meters
+    public static final float BALL_SPEED_SCALAR = 0.05f; // percent speed gained per level
     public static final int START_LEVEL = 0;
     public static float LEVEL_WIDTH_SCALAR=0.07f; // How much level width increases per level
     public static float LEVEL_HEIGHT_SCALAR=0.07f; // How much level height increases per level
-    public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space before drawing bricks
+    public static final float BRICK_HEADER = 6; // WORLD_HEIGHT / n of space from top before drawing bricks
+    public static final float BRICK_FOOTER = 2.5f; // WORLD_HEIGHT / n of space between bricks and paddle
+    public static final float BRICK_MARGIN = 12; // WORLD_HEIGHT / n of space between bricks and paddle
     public static final int STARTING_BRICKC = 100;
     public static final float BRICK_SLALAR = 2.0f; // How much brick count increases per level
 
@@ -224,5 +230,6 @@ public class Const {
             },
     };
 
+    public static ArrayList<int[][]> createdlevels = new ArrayList<>();
     //
 }
